@@ -1,0 +1,16 @@
+{
+  "name": "local-context",
+  "owner": { "name": "Leonardo Serra" },
+  "metadata": {
+    "description": "Per-feature working memory for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "local-context",
+      "source": "./",
+      "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md.",
+      "version": "0.1.0",
+      "license": "MIT"
+    }
+  ]
+}
