@@ -1,7 +1,7 @@
 ---
 name: continue
 description: Resume work on one existing .local_context/<feature_name>/ folder — read its CURRENT.md and IMPLEMENTATION_PLAN.md, agree the session's skills and rules with the user, then work the plan's tasks in order while keeping the three files true. Run by the user as /local-context:continue [feature_name | free-text instructions].
-argument-hint: [feature_name] or free text naming the feature plus session rules
+argument-hint: "[feature_name] or free text naming the feature plus session rules"
 disable-model-invocation: true
 ---
 

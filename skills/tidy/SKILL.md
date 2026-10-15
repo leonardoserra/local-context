@@ -1,7 +1,7 @@
 ---
 name: tidy
 description: Audit and clean one .local_context/<feature_name>/ folder so CURRENT.md holds only current state, ARCHIVE.md holds the history verbatim, and IMPLEMENTATION_PLAN.md is coherent with git and reality. Run by the user as /local-context:tidy [feature_name].
-argument-hint: [feature_name]
+argument-hint: "[feature_name]"
 disable-model-invocation: true
 ---
 
