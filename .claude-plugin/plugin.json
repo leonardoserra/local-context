@@ -1,6 +1,6 @@
 {
   "name": "local-context",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md. `new` creates it, `continue` resumes it, `start` does both, `tidy` cleans it.",
   "author": {
     "name": "Leonardo Serra"

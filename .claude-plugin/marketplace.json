@@ -9,7 +9,7 @@
       "name": "local-context",
       "source": "./",
       "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "license": "MIT"
     }
   ]
