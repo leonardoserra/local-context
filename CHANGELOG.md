@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.0 - 2026-10-19
+
+- Changed
+  - Skills renamed to `local-context-<name>`, so they stay unique in agents with no plugin namespace (e.g. `new`
+    clashed with Codex's own `new`). Claude Code: `/local-context:new` → `/local-context:local-context-new`, and so on.
+    `.local_context/` folders need no change.
+  - Skills run in any Agent Skills agent (Codex, OpenCode, Hermes, OpenClaw, …): script paths are relative to the
+    skill folder instead of Claude's `${CLAUDE_SKILL_DIR}`, and option prompts fall back to a plain question.
+  - Codex never invokes the skills on its own (`agents/openai.yaml`), as Claude Code already did.
+  - README explains how each agent calls the skills and how to install them with `npx skills add
+    leonardoserra/local-context`.
+
 ## 0.2.0 - 2026-10-19
 
 - Changed
