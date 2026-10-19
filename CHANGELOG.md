@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.5.0 - 2026-10-19
+
+- Changed
+  - New optional `BUSINESS.md` in `.local_context/<feature>/`: the feature's business rules only (scope, who gets or
+    sees what, data, timing), whoever decided them. Created only when the work defines business behaviour, never for
+    a pure bug fix or upgrade. A changed rule is replaced in place; the old wording goes to `ARCHIVE.md`.
+  - `local-context-new` writes `BUSINESS.md` when the description states business rules; `local-context-continue`
+    reads it and records business rules settled during a session there instead of in `CURRENT.md`.
+  - `local-context-tidy` flags business rules in `CURRENT.md` and, after your go, moves them word for word into
+    `BUSINESS.md` (checked with `cmp`).
+  - `local-context-business-questions` no longer asks what the code, `BUSINESS.md` or the project docs (`README.md`,
+    `DOCUMENTATION.md`, `CLAUDE.md`, `AGENTS.md`, …) already answer, to you or to the business; it cites the source
+    instead. Every question it asks carries a recommended answer.
+  - `local-context-business-questions` records answers in `BUSINESS.md`, with no split by who decided. Before, your own
+    answers went to a "Positions taken by <user>" section of `CURRENT.md`; only technical positions stay there now.
+
 ## 0.4.0 - 2026-10-19
 
 - Changed
