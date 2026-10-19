@@ -21,6 +21,7 @@ All skills are user-invoked only (Claude never triggers them on its own).
 | `/local-context:continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
 | `/local-context:start <description>` | `new` followed by `continue`, in one step |
 | `/local-context:tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked by a script), and makes the plan match git |
+| `/local-context:business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take, posts it bilingual on the ticket, and records answers and positions in `.local_context` |
 
 Examples:
 
@@ -82,6 +83,7 @@ skills/
   start/SKILL.md
   tidy/SKILL.md
   tidy/scripts/lc_tools.py   # verifiable snapshot / prepend / heading checks
+  business-questions/SKILL.md
 ```
 
 ## License
