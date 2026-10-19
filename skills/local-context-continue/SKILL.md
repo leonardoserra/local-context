@@ -7,8 +7,6 @@ disable-model-invocation: true
 
 # local-context-continue
 
-`<this skill folder>` below means the folder that holds this `SKILL.md`.
-
 Picks up a feature created by `local-context-new` (and cleaned by `local-context-tidy`) and
 carries it forward. Typical calls:
 
@@ -138,10 +136,10 @@ is complete — a truncated plan is lost history.
   become tasks with evidence. § START HERE matches HEAD and the next task.
 - **CURRENT**: replace sections that stopped being true (never append a correction beside them);
   move the replaced prose to ARCHIVE verbatim; § RESUME HERE names the next step.
-- **ARCHIVE**: one dated entry for the session, prepended newest first — use the tidy skill's
-  script so the old content is proven intact:
-  `python3 <this skill folder>/../local-context-tidy/scripts/lc_tools.py prepend <entry.md> <ARCHIVE.md>`
-  (if that script is missing, insert above the newest entry and check the line count only grew)
+- **ARCHIVE**: one dated entry for the session, prepended newest first, proving the old content
+  is intact (the second command must print nothing; then `cp` the new file into place):
+  `cat <entry.md> ARCHIVE.md > <scratch>/ARCHIVE.md`
+  `tail -c +$(( $(wc -c < <entry.md>) + 1 )) <scratch>/ARCHIVE.md | cmp - ARCHIVE.md`
 - Never commit or push `.local_context/`.
 
 Do this after each task and before handing off (end of session, `/compact`, `/clear`), so the next

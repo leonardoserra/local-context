@@ -7,8 +7,6 @@ disable-model-invocation: true
 
 # local-context-business-questions
 
-`<this skill folder>` below means the folder that holds this `SKILL.md`.
-
 Turns a feature that is stuck, paused or about to be re-scoped into **a short list of decisions the
 business has to take**, phrased so the decision-maker can answer each one without reading code.
 Typical calls:
@@ -160,9 +158,10 @@ Read each region before writing and read it back after.
   dev task a position implies is added only if it does not depend on an unanswered question —
   otherwise it waits in § Blocked with that dependency named.
 - **Other features touched**: same treatment in their folders (step 7).
-- **ARCHIVE.md**: one dated entry per touched folder, newest first. Prepend with the tidy script:
-  `python3 <this skill folder>/../local-context-tidy/scripts/lc_tools.py prepend <entry.md> <ARCHIVE.md>`.
-  If that script is missing, insert above the newest entry and check the line count only grew.
+- **ARCHIVE.md**: one dated entry per touched folder, newest first, proving the old content
+  is intact (the second command must print nothing; then `cp` the new file into place):
+  `cat <entry.md> ARCHIVE.md > <scratch>/ARCHIVE.md`
+  `tail -c +$(( $(wc -c < <entry.md>) + 1 )) <scratch>/ARCHIVE.md | cmp - ARCHIVE.md`
 
 Never commit or push `.local_context/`.
 

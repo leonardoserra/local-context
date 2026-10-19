@@ -7,8 +7,6 @@ disable-model-invocation: true
 
 # local-context-tidy
 
-`<this skill folder>` below means the folder that holds this `SKILL.md`.
-
 Brings one `.local_context/<feature_name>/` back to its contract:
 
 - **`CURRENT.md`** — only what is true **now**: state, invariants, open items, next step.
@@ -21,7 +19,23 @@ them first; they win over this file, and their per-project constraints (who runs
 push, never commit X) carry into everything below.
 
 **Nothing is lost** is the whole point. These files are the only record of why things were done.
-So: back up first, move by script rather than retyping, and prove every move before and after.
+So: back up first, move text with `sed` / `cat` rather than retyping, and prove every move with
+`cmp`. Only standard shell tools are used (`sed`, `grep`, `sort`, `comm`, `cat`, `tail`, `wc`,
+`cmp`, `cp`), with flags that work in both GNU and BSD/macOS versions.
+
+**Fence-aware heading rule.** Archived text is nested one level down, so its headings do not
+collide with ARCHIVE's own `## <date>` entries. Headings inside ` ``` ` code fences are left alone:
+
+```sh
+sed '/^```/,/^```/!s/^#/##/' IN > OUT     # demote: every line starting with # outside fences
+sed '/^```/,/^```/!s/^##/#/' IN > OUT     # promote back (round-trip check)
+```
+
+**Heading keys** of a file, for comparing sections (status suffixes ignored):
+
+```sh
+sed '/^```/,/^```/d' FILE | grep '^#' | sed -E 's/^#+ *//; s/ — .*| ✅.*| ⛔.*| ⏸.*//' | LC_ALL=C sort -u > KEYS
+```
 
 ## 0 — Pick the folder
 
@@ -70,17 +84,22 @@ commit on the branch). Propose the cut and the fixes, recommend, and **wait for 
 
 ## 4 — Cut CURRENT.md
 
-1. Snapshot the **whole** pre-cut CURRENT into an ARCHIVE entry, verbatim:
+1. Snapshot the **whole** pre-cut CURRENT into an ARCHIVE entry, verbatim (`<s>` = scratch dir):
+   ```sh
+   cp CURRENT.md <s>/src.md                  # a part only: sed -n 'A,Bp' FILE > <s>/src.md
+   [ -z "$(tail -c1 <s>/src.md)" ] || echo >> <s>/src.md      # ensure a final newline
+   sed '/^```/,/^```/!s/^#/##/' <s>/src.md > <s>/body.md
+   sed '/^```/,/^```/!s/^##/#/' <s>/body.md | cmp - <s>/src.md   # round-trip: must print nothing
+   { printf '## %s\n\n%s\n\n--- begin verbatim ---\n\n' "<date> — CURRENT.md cut: the whole pre-cut file, verbatim" "<why, counts>"
+     cat <s>/body.md; printf -- '--- end verbatim ---\n\n'; } > <s>/current_entry.md
+   sed -n '/^--- begin verbatim ---$/,/^--- end verbatim ---$/p' <s>/current_entry.md | sed '1,2d;$d' | cmp - <s>/body.md
    ```
-   python3 <this skill folder>/scripts/lc_tools.py snapshot CURRENT.md <scratch>/current_entry.md \
-     --title "<date> — CURRENT.md cut: the whole pre-cut file, verbatim" --reason "<why, counts>"
-   ```
-   Keep it whole rather than de-duplicating against older entries: "already archived" is only a
-   phrase match, and a partial match silently loses detail. The script refuses unless the entry
-   round-trips exactly to the source.
+   Both `cmp` must print nothing; otherwise stop and report. Keep it whole rather than
+   de-duplicating against older entries: "already archived" is only a phrase match, and a partial
+   match silently loses detail.
 2. Build the new CURRENT in scratch: a rewritten header (state, HEAD, remote, gate, next steps —
    every value measured now, with the command that measured it), then the live sections copied
-   **by line range with a script**, not retyped. Live facts buried in history sections get a short
+   **by line range with `sed -n 'A,Bp'`**, not retyped. Live facts buried in history sections get a short
    "Open items carried from closed tasks" section.
 3. Fix every stale line in the kept text against the code / git, citing `file:line`. Where a kept
    section points at something that moved, point it at the archive entry.
@@ -89,25 +108,28 @@ commit on the branch). Propose the cut and the fixes, recommend, and **wait for 
 
 ## 5 — Fix the plan
 
-1. If § START HERE is stale narrative, snapshot it (`--lines A:B`) into its own ARCHIVE entry and
-   write a short current one: state, remote vs HEAD, next tasks in order, the rules, where the
-   filed items live.
-2. Apply the fixes with a script of exact `old → new` replacements, **asserting each `old` matches
-   exactly once**. Mark statuses; never delete a task. Add index rows for unindexed follow-ups; add
-   a "commits the plan did not cite" section if the audit found any.
-3. Prove no section was lost:
-   `python3 <this skill folder>/scripts/lc_tools.py headings <backup>/IMPLEMENTATION_PLAN.md <scratch>/PLAN.md`
-   (exit 0 = none missing).
-4. Repoint references into CURRENT sections that moved:
-   `python3 <this skill folder>/scripts/lc_tools.py refs <PLAN> <new CURRENT> --repoint "<date> CURRENT cut"`
-   Run it without `--repoint` first and check that the list is right.
+1. If § START HERE is stale narrative, snapshot it (§ 4.1 with `sed -n 'A,Bp'`) into its own
+   ARCHIVE entry and write a short current one: state, remote vs HEAD, next tasks in order, the
+   rules, where the filed items live.
+2. Apply the fixes as exact `old → new` replacements, **checking each `old` matches exactly once**
+   (`grep -cF '<old>'` = 1) before replacing. Mark statuses; never delete a task. Add index rows for
+   unindexed follow-ups; add a "commits the plan did not cite" section if the audit found any.
+3. Prove no section was lost: heading keys of `<backup>/IMPLEMENTATION_PLAN.md` and of the scratch
+   PLAN into two files, then `LC_ALL=C comm -23 <old keys> <new keys>` must print nothing.
+4. Repoint references into CURRENT sections that moved. List them:
+   `` grep -o '`CURRENT\.md` § [^|;,)*`]*' <PLAN> | sort -u ``, and compare each against the heading
+   keys of the new CURRENT. Each one that no longer resolves becomes
+   `` `ARCHIVE.md` (<date> CURRENT cut) § <same section> ``, applied as in step 2.
 
 ## 6 — Install and verify
 
 1. Write a short dated ARCHIVE entry for this session (what was cut, what was fixed, the counts).
-2. `lc_tools.py prepend` each new entry onto ARCHIVE, **newest first**. It refuses if the old
-   content changed.
-3. `cp` the scratch CURRENT / PLAN into place, `cmp` each against its scratch copy, `wc -l` all
+2. Prepend each new entry onto ARCHIVE, **newest first**, proving the old content is intact:
+   ```sh
+   cat <entry.md> ARCHIVE.md > <s>/ARCHIVE.md
+   tail -c +$(( $(wc -c < <entry.md>) + 1 )) <s>/ARCHIVE.md | cmp - ARCHIVE.md   # must print nothing
+   ```
+3. `cp` the scratch CURRENT / PLAN / ARCHIVE into place, `cmp` each against its scratch copy, `wc -l` all
    three, and read back the top of each.
 4. `git status --short` — the project tree must be unchanged (these files are gitignored).
    Never commit or push `.local_context/`.

@@ -27,7 +27,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-new <description>` | Creates `.local_context/<feature>/` with the three files filled in from your description |
 | `local-context-continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
-| `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked by a script), and makes the plan match git |
+| `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take, posts it bilingual on the ticket, and records answers and positions in `.local_context` |
 
 Examples (Claude Code):
@@ -44,7 +44,7 @@ skills if you have them installed; it works fine without them. If a project's `C
 
 ## Install
 
-`local-context-tidy` needs `python3`.
+No dependencies: the skills use only standard shell tools (`sed`, `grep`, `cmp`, `git`, …).
 
 ### Claude Code
 
@@ -90,8 +90,8 @@ npx skills update                                               # later, to upda
 ```
 
 Leave out `-g` to install into the current project only. Install all five skills together:
-`local-context-start`, `local-context-continue` and `local-context-business-questions` read their sibling skills'
-files. Each skill has an `agents/openai.yaml` that keeps Codex from invoking it on its own.
+`local-context-start` reads its sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
+from invoking it on its own.
 
 ### Upgrading from 0.2.x
 
@@ -107,7 +107,6 @@ The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:lo
 skills/
   local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
-  local-context-tidy/scripts/lc_tools.py   # verifiable snapshot / prepend / heading checks
 ```
 
 ## License
