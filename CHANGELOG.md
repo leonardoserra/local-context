@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.0 - 2026-10-19
+
+- Changed
+  - No Python needed: `local-context-tidy` proves its moves with standard shell tools (`sed`, `cmp`, `comm`) instead of
+    `lc_tools.py`. Archive entries keep the same format: headings nested one level down, code fences untouched.
+  - `local-context-continue` and `local-context-business-questions` prepend to `ARCHIVE.md` with `cat` and prove the
+    old content is intact with `cmp`, even when `local-context-tidy` is not installed.
+- Removed
+  - `skills/local-context-tidy/scripts/lc_tools.py`.
+
 ## 0.3.0 - 2026-10-19
 
 - Changed
