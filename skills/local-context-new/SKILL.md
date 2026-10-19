@@ -13,7 +13,7 @@ Creates `.local_context/<feature_name>/` for one piece of work. Typical call:
 local-context-new the new task is called <task name> it is about <description and details>
 ```
 
-The three files are AI/agent working memory: each holds one kind of content, so a later session
+The files are AI/agent working memory: each holds one kind of content, so a later session
 can read one short file and act.
 
 | File | Holds | Rule |
@@ -21,6 +21,7 @@ can read one short file and act.
 | `CURRENT.md` | what is true **now** — state, contracts, invariants, load-bearing decisions, open items, next step | replace a section when it stops being true; never append a correction |
 | `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks, each with repo, dependencies, `file:line` anchors, a **Done when** line; verification commands; a **Do NOT do (YAGNI)** table | never delete a shipped task — mark it `✅ DONE <date> (<sha>)`; blocked work goes under its own heading with the blocking question, never as a task with an invented default |
 | `ARCHIVE.md` | dated history, newest entry first, append-only | never rewrite old entries |
+| `BUSINESS.md` *(optional)* | the business rules of the feature: what it must do for users, clients and the company — scope, who gets/sees/edits what, data, timing. No technical rules | only when the work defines or changes business behaviour (a pure bug fix or upgrade has none); replace a rule when it changes, the old wording goes to ARCHIVE; never record who asked for a rule as a category — a rule is a rule |
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules, those
 win over this table — read them first and follow them.
@@ -53,9 +54,12 @@ win over this table — read them first and follow them.
    the user did not say stays as an explicit open question — do not invent file paths, versions or
    decisions. If the description is thin, the plan may hold only "Task 1 — investigate/scope" with
    the questions it must answer.
+   Write `BUSINESS.md` too, only if the description states business rules (who gets, sees or
+   edits what, scope, what changes for users or clients, timing); otherwise do not create it.
+   Business rules go there, not in `CURRENT.md`.
 
 6. **Read each file back** and confirm it is complete (no truncation), then report: folder path,
-   whether `.gitignore` changed, and the first task in the plan. Do not commit anything —
+   whether `.gitignore` changed, whether `BUSINESS.md` was created, and the first task in the plan. Do not commit anything —
    `.local_context/` is never committed or pushed.
 
 ## Templates
@@ -132,4 +136,19 @@ Next: `IMPLEMENTATION_PLAN.md` § Task 1.
 ## <YYYY-MM-DD> — folder created
 
 Created by `local-context-new` from: "<the user's description, verbatim>".
+```
+
+`BUSINESS.md` (optional, also created later by `local-context-continue` or
+`local-context-business-questions` when the first business rule is settled):
+
+```markdown
+# <feature_name> — BUSINESS
+
+Business rules as of **<YYYY-MM-DD>**: what this feature must do for users, clients and the
+company. No technical rules (those are in `CURRENT.md`). A rule that changes is replaced here; the
+old wording goes to `ARCHIVE.md`.
+
+## <theme, e.g. Scope · Who · Data · Timing>
+
+- <the rule, in business language> — <YYYY-MM-DD>; <ref: ticket comment, doc, call — if any>
 ```

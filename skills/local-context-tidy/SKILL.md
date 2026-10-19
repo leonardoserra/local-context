@@ -1,6 +1,6 @@
 ---
 name: local-context-tidy
-description: Audit and clean one .local_context/<feature_name>/ folder so CURRENT.md holds only current state, ARCHIVE.md holds the history verbatim, and IMPLEMENTATION_PLAN.md is coherent with git and reality. Run by the user as local-context-tidy [feature_name].
+description: Audit and clean one .local_context/<feature_name>/ folder so CURRENT.md holds only current state, ARCHIVE.md holds the history verbatim, business rules sit in the optional BUSINESS.md, and IMPLEMENTATION_PLAN.md is coherent with git and reality. Run by the user as local-context-tidy [feature_name].
 argument-hint: "[feature_name]"
 disable-model-invocation: true
 ---
@@ -13,6 +13,8 @@ Brings one `.local_context/<feature_name>/` back to its contract:
 - **`ARCHIVE.md`** — dated history, append-only, newest first. Moved text goes in **verbatim**.
 - **`IMPLEMENTATION_PLAN.md`** — every task's status backed by git or a measurement, § START HERE
   matching HEAD / remote / next task, every filed follow-up a task or an index row.
+- **`BUSINESS.md`** *(optional)* — the feature's business rules only, no technical ones. Business
+  rules found in CURRENT move here.
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules, read
 them first; they win over this file, and their per-project constraints (who runs tests, never
@@ -48,7 +50,7 @@ sed '/^```/,/^```/d' FILE | grep '^#' | sed -E 's/^#+ *//; s/ — .*| ✅.*| ⛔
 
 ## 1 — Back up
 
-Copy the three files to the session scratchpad (or `/tmp/local-context-tidy-<date>/`) before
+Copy the three files (and `BUSINESS.md`, if present) to the session scratchpad (or `/tmp/local-context-tidy-<date>/`) before
 reading anything else. Say where. All later edits are made on scratch copies first, then
 installed with `cp`, then `cmp`-checked.
 
@@ -60,7 +62,8 @@ to two `general-purpose` subagents, both told **read-only, never edit**:
 1. **CURRENT audit.** Map every heading with line range and size. Classify each section: (a) live
    state — keep; (b) history / closed-task narrative / measurement logs — move; (c) stale or
    contradicted — says something no longer true (old HEAD, "next task" already done, wrong push
-   state, old version, old gate figure). For each (b), grep ARCHIVE for distinctive phrases, SHAs
+   state, old version, old gate figure); (d) business rule — what the feature must do for users,
+   clients or the company, not how it is built — move to `BUSINESS.md`. For each (b), grep ARCHIVE for distinctive phrases, SHAs
    and numbers: already there or NOT. List contradictions between CURRENT and PLAN on
    load-bearing values with both `file:line`. List live facts buried inside (b) sections.
 2. **PLAN coherence.** From the top to the current point: every task has a status (DONE + sha,
@@ -101,9 +104,13 @@ commit on the branch). Propose the cut and the fixes, recommend, and **wait for 
    every value measured now, with the command that measured it), then the live sections copied
    **by line range with `sed -n 'A,Bp'`**, not retyped. Live facts buried in history sections get a short
    "Open items carried from closed tasks" section.
-3. Fix every stale line in the kept text against the code / git, citing `file:line`. Where a kept
+3. Business rules (class d) go to a scratch `BUSINESS.md` (from `local-context-new`'s template if
+   the feature has none), copied **by line range with `sed -n 'A,Bp'`** under a theme heading, and
+   leave the new CURRENT. Prove each copy: `sed -n 'A,Bp' <backup>/CURRENT.md | cmp - <the range in
+   BUSINESS.md>`. A rule that contradicts one already in `BUSINESS.md` is not merged: ask which holds.
+4. Fix every stale line in the kept text against the code / git, citing `file:line`. Where a kept
    section points at something that moved, point it at the archive entry.
-4. Target: a file someone can act on without reading anything else. There is no line target, but
+5. Target: a file someone can act on without reading anything else. There is no line target, but
    if it is still over ~600 lines, look again for history.
 
 ## 5 — Fix the plan
@@ -129,13 +136,13 @@ commit on the branch). Propose the cut and the fixes, recommend, and **wait for 
    cat <entry.md> ARCHIVE.md > <s>/ARCHIVE.md
    tail -c +$(( $(wc -c < <entry.md>) + 1 )) <s>/ARCHIVE.md | cmp - ARCHIVE.md   # must print nothing
    ```
-3. `cp` the scratch CURRENT / PLAN / ARCHIVE into place, `cmp` each against its scratch copy, `wc -l` all
-   three, and read back the top of each.
+3. `cp` the scratch CURRENT / PLAN / ARCHIVE (and BUSINESS, if touched) into place, `cmp` each
+   against its scratch copy, `wc -l` each, and read back the top of each.
 4. `git status --short` — the project tree must be unchanged (these files are gitignored).
    Never commit or push `.local_context/`.
 
 ## 7 — Tell the user
 
-A few lines: line counts before → after, what was archived (and that it round-tripped), the plan
-fixes by kind, anything that needs their decision, and where the backups are (say whether they
+A few lines: line counts before → after, what was archived (and that it round-tripped), business
+rules moved to `BUSINESS.md`, the plan fixes by kind, anything that needs their decision, and where the backups are (say whether they
 survive the session).

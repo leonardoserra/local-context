@@ -23,6 +23,7 @@ The folder contract is the one `new` writes:
 | `CURRENT.md` | what is true now; ends with § RESUME HERE | read first, in full; rewrite sections that stop being true |
 | `IMPLEMENTATION_PLAN.md` | § START HERE, numbered § Tasks (Repo / Depends on / Anchors / **Done when**), § Blocked on a decision, § Verification commands, § Do NOT do (YAGNI) | the work list — follow it in order |
 | `ARCHIVE.md` | dated history, newest first, append-only | not read unless the user asks "why"; one new entry per session, prepended |
+| `BUSINESS.md` *(optional)* | the feature's business rules, no technical ones | read in full when present; the work must respect it; created (template in `new`) when the first business rule is settled |
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules or
 per-project constraints (who runs tests, never push, approval before each change, commit style),
@@ -54,6 +55,7 @@ Everything read is re-sent on every later turn, so load only what the work needs
    § RESUME HERE, and suggest `local-context-tidy` afterwards.
 2. `IMPLEMENTATION_PLAN.md`: `grep -n '^#'` for the outline, then ranged reads of § START HERE, the
    next open task(s), § Blocked on a decision, § Verification commands, § Do NOT do (YAGNI).
+   `BUSINESS.md` in full, if it exists.
 3. If CURRENT/plan point at a sibling folder of the same feature in another repo (container repo
    ↔ subrepo), read that one only when about to touch that repo.
 4. Quick drift check: `git log --oneline -10` and `git status --short` against § START HERE. If the
@@ -126,7 +128,7 @@ diverges, ask whether it is once or for the rest of the session if that is not c
 6. Update the record (section 6), then move to the next task. Stop and ask at a blocked task, a
    decision the plan does not settle, or a failed verification you cannot explain.
 
-## 6 — Keep the three files true
+## 6 — Keep the files true
 
 Before each write, read the exact region you are changing; after it, read it back and confirm it
 is complete — a truncated plan is lost history.
@@ -136,6 +138,10 @@ is complete — a truncated plan is lost history.
   become tasks with evidence. § START HERE matches HEAD and the next task.
 - **CURRENT**: replace sections that stopped being true (never append a correction beside them);
   move the replaced prose to ARCHIVE verbatim; § RESUME HERE names the next step.
+- **BUSINESS**: a business rule settled this session (whoever settled it: the user, a manager, a
+  client need) goes in `BUSINESS.md`, not CURRENT — create the file from `new`'s template if
+  absent. A changed rule is replaced in place and its old wording moved to ARCHIVE verbatim. A pure
+  technical session leaves it untouched.
 - **ARCHIVE**: one dated entry for the session, prepended newest first, proving the old content
   is intact (the second command must print nothing; then `cp` the new file into place):
   `cat <entry.md> ARCHIVE.md > <scratch>/ARCHIVE.md`

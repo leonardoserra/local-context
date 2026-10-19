@@ -1,6 +1,6 @@
 ---
 name: local-context-business-questions
-description: For one feature in .local_context/<feature_name>/, establish where it really stands (docs checked against git, code and the ticket), then build — iterating with the user — the list of open questions only the business can answer, hand it over bilingual on the feature's ticket, and record the answers and the user's own positions in .local_context. Run by the user as local-context-business-questions [feature_name | free text], typically before a call with the boss or product owner, or when a feature is paused on a business decision.
+description: For one feature in .local_context/<feature_name>/, establish where it really stands (docs checked against git, code and the ticket), then build — iterating with the user — the list of open questions only the business can answer, hand it over bilingual on the feature's ticket, and record the answers as business rules in .local_context/<feature_name>/BUSINESS.md. Asks only what the code and the project docs cannot answer, always with a recommendation. Run by the user as local-context-business-questions [feature_name | free text], typically before a call with the boss or product owner, or when a feature is paused on a business decision.
 argument-hint: "[feature_name] or free text naming the feature plus context (who decides, ticket key, language)"
 disable-model-invocation: true
 ---
@@ -27,7 +27,8 @@ Outputs, in order:
 2. The question list, iterated with the user until approved.
 3. The same list translated into the business language, approved.
 4. One ticket comment per affected ticket: English, then `---`, then the translation.
-5. `.local_context` updated: positions, open items pointing at the comment id, drift fixed, ARCHIVE.
+5. `.local_context` updated: business rules in `BUSINESS.md`, technical positions and open items
+   (pointing at the comment id) in CURRENT, drift fixed, ARCHIVE.
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines rules (who runs tests, approval before
 changes, naming, caveman/ponytail usage, how to write `.local_context`), **those win** over this file.
@@ -46,11 +47,16 @@ Everything read is re-sent on every later turn.
 1. Each level's `CURRENT.md` for this feature (cross-repo one first). Over ~600 lines: head, status
    banner, open items, any "undecided / blocked / paused" section.
 2. `IMPLEMENTATION_PLAN.md`: `grep -n '^#'`, then § Blocked / open questions only.
+   `BUSINESS.md` in full, if it exists: these rules are settled and are never asked again.
 3. The ticket: key from CURRENT/plan. Description **and comments** (comments hold the latest status;
    with the Atlassian MCP, comments need `listJiraIssueComments`). Linked tickets: summary only.
 4. Cross-feature files CURRENT points to (an open-issues list, a sibling feature): only the sections
    it names. Do not sweep sibling features "just in case".
-5. `ARCHIVE.md` only to answer a "why" — in particular "was this tried before and dropped?" when the
+5. The project's own docs that state business rules: `BUSINESS.md`, `DOCUMENTATION.md`,
+   `README.md`, `CLAUDE.md`, `AGENTS.md` at the root, and similar (`docs/`, `*.md` naming the
+   domain). `grep -il` for the feature's business names first, then read only the matching sections.
+   Same for the other `.local_context/*/BUSINESS.md`: a rule another feature already settled holds here too.
+6. `ARCHIVE.md` only to answer a "why" — in particular "was this tried before and dropped?" when the
    user proposes a design (step 7).
 
 ## 3 — Check the docs against reality
@@ -78,13 +84,20 @@ End with the one-line answer to "does it work?".
 
 ## 5 — Sort every open point
 
-Collect candidates from the docs' open items, the ticket, and anything step 3 surfaced. Put each in
-exactly one bucket:
+Collect candidates from the docs' open items, the ticket, and anything step 3 surfaced.
+
+**Answer from the record first.** Before a candidate becomes a question — to the user or to the
+business — look for its answer in the code (today's behaviour), the feature's `BUSINESS.md`, and the
+project docs from step 2. Already answered → it is not asked: tell the user in one line with the
+source (`file:line` or `doc § section`); a business answer found outside `BUSINESS.md` is recorded
+there (step 10). Only what nothing answers stays a candidate.
+
+Put each remaining candidate in exactly one bucket:
 
 | Bucket | Test | Goes to |
 |---|---|---|
 | **Business** | Only the business can decide: scope, who gets/sees/edits what, data leaving the company, contract or privacy, what changes for users, release timing | the question list |
-| **Developer's call** | Technical, invisible to users, or already settled by "keep current behaviour" | ask the user directly, record as a position |
+| **Developer's call** | Technical, invisible to users, or already settled by "keep current behaviour" | ask the user directly, with your recommended answer; record as a technical position in CURRENT |
 | **Another feature** | The decision is owned by a different feature | that feature's `.local_context` + its ticket (step 7) |
 
 Default when unsure whether something needs the business: **"where possible, no change to behaviour
@@ -114,8 +127,9 @@ questions — the decision-maker can still object, but is not asked to think abo
 
 Show the draft and read the answer carefully; it usually mixes several moves. For each:
 
-- **The user answers a question themselves** → it leaves the list. Record it as a *position*
-  (step 10); if the business could still care, it moves to "kept as today".
+- **The user answers a question themselves** → it leaves the list. A business answer is a business
+  rule like any other, whoever gave it (the user, a manager, a client need): it goes to
+  `BUSINESS.md` (step 10). A technical answer is a position in CURRENT.
 - **"What is X? Is X real or your assumption?"** → prove it from code (`file:line`, route, guard),
   answer in two lines, then rephrase the question so the doubt cannot recur.
 - **"No risk? Then keep as today."** → do the risk analysis with evidence. No new risk: it moves to
@@ -148,9 +162,15 @@ the comment id. If posting is not possible (no ticket tool, no ticket), give the
 
 Read each region before writing and read it back after.
 
+- **BUSINESS.md** (the feature's cross-repo one; create it from `local-context-new`'s template if
+  absent): every business rule settled in this run — answers from the business, from the user, or
+  found in the project docs (step 5) — under its theme, each with its date and ref (ticket comment
+  id, doc) if any. No split by who decided. A rule that changes an existing one replaces it; the
+  old wording goes to ARCHIVE verbatim. Code impact when resumed ("changes the built code: …",
+  "depends on A2") goes in CURRENT, pointing at the rule.
 - **CURRENT.md** (the feature's cross-repo one):
-  - § *Positions taken by <user>, <date> (not put to business)* — each with its evidence and any
-    code impact when resumed ("changes the built code: …", "depends on A2").
+  - § *Technical positions, <date>* — the developer's-call answers, each with its evidence and any
+    code impact when resumed.
   - Open items: one line pointing at the ticket comment id as the source of the pending questions.
   - Drift fixes the user approved in step 3, replacing the stale statement (never a correction
     beside it).
@@ -168,7 +188,7 @@ Never commit or push `.local_context/`.
 ## 11 — Hand-off
 
 A few lines: where the questions were posted (ticket + comment id), what is pending on the business,
-positions recorded, drift fixed, follow-ups filed elsewhere, and what unblocks the feature first.
+business rules added to `BUSINESS.md`, technical positions recorded, drift fixed, follow-ups filed elsewhere, and what unblocks the feature first.
 
 ## Rules for the whole run
 
@@ -179,6 +199,9 @@ positions recorded, drift fixed, follow-ups filed elsewhere, and what unblocks t
   labelled as a guess. An empty grep is an absence only if the search would have matched.
 - **Outward-facing means confirm first.** Ticket comments, documents, messages: show the final text,
   wait for the go.
-- **Options carry a recommendation**: recommended first with `(Recommended)` in `AskUserQuestion`,
-  one line of why in prose.
+- **Ask only what the record cannot answer.** Never ask the user something the code, `BUSINESS.md`,
+  the project docs or `.local_context` already answer; cite the source instead.
+- **Every question carries a recommendation**, open ones too: recommended first with
+  `(Recommended)` in `AskUserQuestion`, one line of why in prose. Ask in rounds, iterating on the
+  answers, until nothing is open.
 - **Short and clear** in chat; the decision-maker's text is plain business language.

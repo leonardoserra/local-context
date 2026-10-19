@@ -8,6 +8,7 @@ A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any 
 | `CURRENT.md` | what is true **now**: state, decisions, open questions, and a § RESUME HERE section |
 | `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks with anchors and a **Done when** line, verification commands, a "Do NOT do (YAGNI)" table |
 | `ARCHIVE.md` | dated history, newest first, append-only |
+| `BUSINESS.md` *(optional)* | the feature's business rules only (scope, who gets/sees what, data, timing), whoever decided them; not created for pure technical work such as a bug fix |
 
 `.local_context/` is git-ignored automatically and never committed.
 
@@ -28,7 +29,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
-| `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take, posts it bilingual on the ticket, and records answers and positions in `.local_context` |
+| `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
 
 Examples (Claude Code):
 
