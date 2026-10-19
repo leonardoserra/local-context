@@ -1,11 +1,13 @@
 ---
-name: tidy
-description: Audit and clean one .local_context/<feature_name>/ folder so CURRENT.md holds only current state, ARCHIVE.md holds the history verbatim, and IMPLEMENTATION_PLAN.md is coherent with git and reality. Run by the user as /local-context:tidy [feature_name].
+name: local-context-tidy
+description: Audit and clean one .local_context/<feature_name>/ folder so CURRENT.md holds only current state, ARCHIVE.md holds the history verbatim, and IMPLEMENTATION_PLAN.md is coherent with git and reality. Run by the user as local-context-tidy [feature_name].
 argument-hint: "[feature_name]"
 disable-model-invocation: true
 ---
 
-# local-context:tidy
+# local-context-tidy
+
+`<this skill folder>` below means the folder that holds this `SKILL.md`.
 
 Brings one `.local_context/<feature_name>/` back to its contract:
 
@@ -23,11 +25,11 @@ So: back up first, move by script rather than retyping, and prove every move bef
 
 ## 0 — Pick the folder
 
-- `$ARGUMENTS` names it (`tidy ruby_rails_upgrade`, `clean the ruby_rails_upgrade`) → use it. Match
+- The arguments name it (`tidy ruby_rails_upgrade`, `clean the ruby_rails_upgrade`) → use it. Match
   loosely (case, `-`/`_`, a unique prefix) and say which folder you matched.
 - No argument → list the subfolders of `.local_context/` (project root: `git rev-parse
   --show-toplevel`, else cwd) with each one's `CURRENT.md` line count, and ask which one with
-  `AskUserQuestion`. Recommend the largest or most recently modified, and say why.
+  `AskUserQuestion` (or a plain question if the agent has no such tool). Recommend the largest or most recently modified, and say why.
 - `.local_context` may be a symlink (git worktrees). Resolve it and write to the real path.
 
 ## 1 — Back up
@@ -70,7 +72,7 @@ commit on the branch). Propose the cut and the fixes, recommend, and **wait for 
 
 1. Snapshot the **whole** pre-cut CURRENT into an ARCHIVE entry, verbatim:
    ```
-   python3 ${CLAUDE_SKILL_DIR}/scripts/lc_tools.py snapshot CURRENT.md <scratch>/current_entry.md \
+   python3 <this skill folder>/scripts/lc_tools.py snapshot CURRENT.md <scratch>/current_entry.md \
      --title "<date> — CURRENT.md cut: the whole pre-cut file, verbatim" --reason "<why, counts>"
    ```
    Keep it whole rather than de-duplicating against older entries: "already archived" is only a
@@ -94,10 +96,10 @@ commit on the branch). Propose the cut and the fixes, recommend, and **wait for 
    exactly once**. Mark statuses; never delete a task. Add index rows for unindexed follow-ups; add
    a "commits the plan did not cite" section if the audit found any.
 3. Prove no section was lost:
-   `python3 ${CLAUDE_SKILL_DIR}/scripts/lc_tools.py headings <backup>/IMPLEMENTATION_PLAN.md <scratch>/PLAN.md`
+   `python3 <this skill folder>/scripts/lc_tools.py headings <backup>/IMPLEMENTATION_PLAN.md <scratch>/PLAN.md`
    (exit 0 = none missing).
 4. Repoint references into CURRENT sections that moved:
-   `python3 ${CLAUDE_SKILL_DIR}/scripts/lc_tools.py refs <PLAN> <new CURRENT> --repoint "<date> CURRENT cut"`
+   `python3 <this skill folder>/scripts/lc_tools.py refs <PLAN> <new CURRENT> --repoint "<date> CURRENT cut"`
    Run it without `--repoint` first and check that the list is right.
 
 ## 6 — Install and verify

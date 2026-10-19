@@ -1,7 +1,7 @@
 {
   "name": "local-context",
-  "version": "0.2.0",
-  "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md. `new` creates it, `continue` resumes it, `start` does both, `tidy` cleans it.",
+  "version": "0.3.0",
+  "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md. `local-context-new` creates it, `local-context-continue` resumes it, `local-context-start` does both, `local-context-tidy` cleans it, `local-context-business-questions` lists the decisions the business owes.",
   "author": {
     "name": "Leonardo Serra"
   },

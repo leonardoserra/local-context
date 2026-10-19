@@ -1,16 +1,16 @@
 ---
-name: new
-description: Create a new per-feature working-memory folder, .local_context/<feature_name>/, with CURRENT.md, IMPLEMENTATION_PLAN.md and ARCHIVE.md initialised from the user's description, creating .local_context/ and git-ignoring it when needed. Run by the user as /local-context:new.
+name: local-context-new
+description: Create a new per-feature working-memory folder, .local_context/<feature_name>/, with CURRENT.md, IMPLEMENTATION_PLAN.md and ARCHIVE.md initialised from the user's description, creating .local_context/ and git-ignoring it when needed. Run by the user as local-context-new.
 argument-hint: the new task is called <task name> it is about <description>
 disable-model-invocation: true
 ---
 
-# local-context:new
+# local-context-new
 
 Creates `.local_context/<feature_name>/` for one piece of work. Typical call:
 
 ```
-/local-context:new the new task is called <task name> it is about <description and details>
+local-context-new the new task is called <task name> it is about <description and details>
 ```
 
 The three files are AI/agent working memory: each holds one kind of content, so a later session
@@ -39,7 +39,7 @@ win over this table — read them first and follow them.
      of 2–4 words that names the work, not the sentence (`ruby_rails_upgrade`), and say which name
      you chose and why in one line.
    - If `.local_context/<feature_name>/` already exists, **stop** and ask: use it (then this skill
-     does nothing — suggest `/local-context:tidy`), or pick another name. Never overwrite.
+     does nothing — suggest `local-context-tidy`), or pick another name. Never overwrite.
 
 3. **Create `.local_context/`** if absent (`mkdir -p`).
 
@@ -131,5 +131,5 @@ Next: `IMPLEMENTATION_PLAN.md` § Task 1.
 ```markdown
 ## <YYYY-MM-DD> — folder created
 
-Created by `/local-context:new` from: "<the user's description, verbatim>".
+Created by `local-context-new` from: "<the user's description, verbatim>".
 ```

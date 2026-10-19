@@ -1,6 +1,6 @@
 # local-context
 
-A Claude Code plugin that gives each feature its own working memory in
+A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any agent) that gives each feature its own working memory in
 `.local_context/<feature>/`, so a later session can pick up exactly where the last one stopped.
 
 | File | Holds |
@@ -13,31 +13,40 @@ A Claude Code plugin that gives each feature its own working memory in
 
 ## Skills
 
-All skills are user-invoked only (Claude never triggers them on its own).
+All skills are user-invoked only (the agent never triggers them on its own).
+Every skill name starts with `local-context-`, so it stays unique in agents that have no plugin namespace.
 
-| Command | What it does |
+| Agent | How to call a skill |
 |---|---|
-| `/local-context:new <description>` | Creates `.local_context/<feature>/` with the three files filled in from your description |
-| `/local-context:continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
-| `/local-context:start <description>` | `new` followed by `continue`, in one step |
-| `/local-context:tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked by a script), and makes the plan match git |
-| `/local-context:business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take, posts it bilingual on the ticket, and records answers and positions in `.local_context` |
+| Claude Code (plugin) | `/local-context:local-context-new …` |
+| Codex | `$local-context-new …` |
+| Others (OpenCode, Hermes, OpenClaw, …) | by name: `local-context-new …`, or the agent's own skill syntax |
 
-Examples:
+| Skill | What it does |
+|---|---|
+| `local-context-new <description>` | Creates `.local_context/<feature>/` with the three files filled in from your description |
+| `local-context-continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
+| `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
+| `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked by a script), and makes the plan match git |
+| `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take, posts it bilingual on the ticket, and records answers and positions in `.local_context` |
+
+Examples (Claude Code):
 
 ```
-/local-context:new the new task is called ruby rails upgrade it is about upgrading to Rails 8
-/local-context:continue ruby_rails_upgrade. Mandatory skills: caveman for exploration, ponytail for code.
-/local-context:tidy ruby_rails_upgrade
+/local-context:local-context-new the new task is called ruby rails upgrade it is about upgrading to Rails 8
+/local-context:local-context-continue ruby_rails_upgrade. Mandatory skills: caveman for exploration, ponytail for code.
+/local-context:local-context-tidy ruby_rails_upgrade
 ```
 
-`continue` offers the optional caveman and ponytail
+`local-context-continue` offers the optional caveman and ponytail
 skills if you have them installed; it works fine without them. If a project's `CLAUDE.md` defines its own
 `.local_context/` rules, those take precedence.
 
 ## Install
 
-Requires Claude Code with plugin support. `tidy` needs `python3`.
+`local-context-tidy` needs `python3`.
+
+### Claude Code
 
 From GitHub:
 
@@ -71,6 +80,24 @@ claude plugin update local-context@local-context
 claude plugin uninstall local-context@local-context
 ```
 
+### Codex, OpenCode, Hermes, OpenClaw and other agents
+
+With the [`skills` CLI](https://github.com/vercel-labs/skills), which copies the skills into each agent's skills folder:
+
+```bash
+npx skills add leonardoserra/local-context -g -a codex          # or -a opencode, -a hermes-agent, -a openclaw
+npx skills update                                               # later, to update
+```
+
+Leave out `-g` to install into the current project only. Install all five skills together:
+`local-context-start`, `local-context-continue` and `local-context-business-questions` read their sibling skills'
+files. Each skill has an `agents/openai.yaml` that keeps Codex from invoking it on its own.
+
+### Upgrading from 0.2.x
+
+The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:local-context-new`, and so on.
+`.local_context/` folders need no change.
+
 ## Layout
 
 ```
@@ -78,12 +105,9 @@ claude plugin uninstall local-context@local-context
   plugin.json          # plugin manifest
   marketplace.json     # makes this repo its own marketplace
 skills/
-  new/SKILL.md
-  continue/SKILL.md
-  start/SKILL.md
-  tidy/SKILL.md
-  tidy/scripts/lc_tools.py   # verifiable snapshot / prepend / heading checks
-  business-questions/SKILL.md
+  local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions
+  local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
+  local-context-tidy/scripts/lc_tools.py   # verifiable snapshot / prepend / heading checks
 ```
 
 ## License

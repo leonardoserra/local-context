@@ -1,27 +1,29 @@
 ---
-name: start
-description: Create a new .local_context/<feature_name>/ folder (as /local-context:new does) and immediately resume work on it (as /local-context:continue does) — one command from idea to first task. Run by the user as /local-context:start.
+name: local-context-start
+description: Create a new .local_context/<feature_name>/ folder (as local-context-new does) and immediately resume work on it (as local-context-continue does) — one command from idea to first task. Run by the user as local-context-start.
 argument-hint: the new task is called <task name> it is about <description> [plus session rules]
 disable-model-invocation: true
 ---
 
-# local-context:start
+# local-context-start
+
+`<this skill folder>` below means the folder that holds this `SKILL.md`.
 
 `new` followed by `continue`, in one call:
 
 ```
-/local-context:start the new task is called <task name> it is about <description and details>
+local-context-start the new task is called <task name> it is about <description and details>
 ```
 
 The two sibling skills are the source of truth — this file only joins them. Read them now and
 follow them, rather than working from memory:
 
-- `${CLAUDE_SKILL_DIR}/../new/SKILL.md`
-- `${CLAUDE_SKILL_DIR}/../continue/SKILL.md`
+- `<this skill folder>/../local-context-new/SKILL.md`
+- `<this skill folder>/../local-context-continue/SKILL.md`
 
 ## 1 — Split the arguments
 
-`$ARGUMENTS` may carry two things: the feature description (name, goal, details) and session
+The arguments may carry two things: the feature description (name, goal, details) and session
 setup (skills like caveman / ponytail, levels like `/caveman full`, extra session rules). The
 description feeds `new`; the setup feeds `continue` § 3, where anything already stated is
 applied without asking again. If a sentence could be either, treat it as description — it ends

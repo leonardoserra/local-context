@@ -1,19 +1,21 @@
 ---
-name: business-questions
-description: For one feature in .local_context/<feature_name>/, establish where it really stands (docs checked against git, code and the ticket), then build — iterating with the user — the list of open questions only the business can answer, hand it over bilingual on the feature's ticket, and record the answers and the user's own positions in .local_context. Run by the user as /local-context:business-questions [feature_name | free text], typically before a call with the boss or product owner, or when a feature is paused on a business decision.
+name: local-context-business-questions
+description: For one feature in .local_context/<feature_name>/, establish where it really stands (docs checked against git, code and the ticket), then build — iterating with the user — the list of open questions only the business can answer, hand it over bilingual on the feature's ticket, and record the answers and the user's own positions in .local_context. Run by the user as local-context-business-questions [feature_name | free text], typically before a call with the boss or product owner, or when a feature is paused on a business decision.
 argument-hint: "[feature_name] or free text naming the feature plus context (who decides, ticket key, language)"
 disable-model-invocation: true
 ---
 
-# local-context:business-questions
+# local-context-business-questions
+
+`<this skill folder>` below means the folder that holds this `SKILL.md`.
 
 Turns a feature that is stuck, paused or about to be re-scoped into **a short list of decisions the
 business has to take**, phrased so the decision-maker can answer each one without reading code.
 Typical calls:
 
 ```
-/local-context:business-questions report_mailing_list
-/local-context:business-questions shared_template_and_automatic_report — boss call on Thursday, ticket BAI-454
+local-context-business-questions report_mailing_list
+local-context-business-questions shared_template_and_automatic_report — boss call on Thursday, ticket BAI-454
 ```
 
 The work is a loop with the user, not a one-shot report: the first draft is always wrong in some
@@ -34,8 +36,8 @@ changes, naming, caveman/ponytail usage, how to write `.local_context`), **those
 
 ## 1 — Pick the feature
 
-Same as `/local-context:continue`: exact name or path → use it; a phrase → infer, then confirm with
-`AskUserQuestion` (inferred folder first, `(Recommended)`); nothing → list folders by recency and ask.
+Same as `local-context-continue`: exact name or path → use it; a phrase → infer, then confirm with
+`AskUserQuestion` or a plain question (inferred folder first, `(Recommended)`); nothing → list folders by recency and ask.
 A feature may exist at several levels (container repo + each subrepo): find all of them
 (`ls */.local_context/<feature>` and the root one).
 
@@ -159,7 +161,8 @@ Read each region before writing and read it back after.
   otherwise it waits in § Blocked with that dependency named.
 - **Other features touched**: same treatment in their folders (step 7).
 - **ARCHIVE.md**: one dated entry per touched folder, newest first. Prepend with the tidy script:
-  `python3 ${CLAUDE_SKILL_DIR}/../tidy/scripts/lc_tools.py prepend <entry.md> <ARCHIVE.md>`.
+  `python3 <this skill folder>/../local-context-tidy/scripts/lc_tools.py prepend <entry.md> <ARCHIVE.md>`.
+  If that script is missing, insert above the newest entry and check the line count only grew.
 
 Never commit or push `.local_context/`.
 

@@ -1,18 +1,20 @@
 ---
-name: continue
-description: Resume work on one existing .local_context/<feature_name>/ folder — read its CURRENT.md and IMPLEMENTATION_PLAN.md, agree the session's skills and rules with the user, then work the plan's tasks in order while keeping the three files true. Run by the user as /local-context:continue [feature_name | free-text instructions].
+name: local-context-continue
+description: Resume work on one existing .local_context/<feature_name>/ folder — read its CURRENT.md and IMPLEMENTATION_PLAN.md, agree the session's skills and rules with the user, then work the plan's tasks in order while keeping the three files true. Run by the user as local-context-continue [feature_name | free-text instructions].
 argument-hint: "[feature_name] or free text naming the feature plus session rules"
 disable-model-invocation: true
 ---
 
-# local-context:continue
+# local-context-continue
 
-Picks up a feature created by `/local-context:new` (and cleaned by `/local-context:tidy`) and
+`<this skill folder>` below means the folder that holds this `SKILL.md`.
+
+Picks up a feature created by `local-context-new` (and cleaned by `local-context-tidy`) and
 carries it forward. Typical calls:
 
 ```
-/local-context:continue ruby_rails_upgrade
-/local-context:continue let's continue the implementation of @.local_context/ruby_rails_upgrade.
+local-context-continue ruby_rails_upgrade
+local-context-continue let's continue the implementation of @.local_context/ruby_rails_upgrade.
                         Mandatory skills: caveman for exploration and commits, ponytail for code.
 ```
 
@@ -33,25 +35,25 @@ per-project constraints (who runs tests, never push, approval before each change
 Project root: `git rev-parse --show-toplevel`, else cwd. `.local_context` may be a symlink (git
 worktrees) — resolve it, write through it.
 
-- **Exact name or path** in `$ARGUMENTS` (`ruby_rails_upgrade`, `@.local_context/ruby_rails_upgrade`,
+- **Exact name or path** in the arguments (`ruby_rails_upgrade`, `@.local_context/ruby_rails_upgrade`,
   `Ruby-Rails-Upgrade`, a unique prefix) → use it, say which folder matched.
 - **A phrase** ("the rails upgrade thing", "the reports mailing work") → infer the best match from
   folder names (and, if names are not enough, the first lines of each `CURRENT.md`), then confirm
-  with `AskUserQuestion`: inferred folder first, labelled `(Recommended)`, plus the next closest.
+  with `AskUserQuestion` (or a plain question if the agent has no such tool): inferred folder first, labelled `(Recommended)`, plus the next closest.
   Never proceed on an inference without that confirmation — continuing the wrong feature edits the
   wrong files.
 - **No argument, or nothing matches** → list the subfolders (`ls -t`, most recently modified first)
   and ask with `AskUserQuestion`. It takes at most 4 options, so offer the most recent ones,
   recommend the most recently modified (say so), and print the full list in the question text so
   the user can type any other name.
-- **No `.local_context/` at all** → say so and suggest `/local-context:new`. Stop.
+- **No `.local_context/` at all** → say so and suggest `local-context-new`. Stop.
 
 ## 2 — Read the state, narrowly
 
 Everything read is re-sent on every later turn, so load only what the work needs.
 
 1. `CURRENT.md` in full (it is meant to be short). If it is over ~600 lines, read the head and
-   § RESUME HERE, and suggest `/local-context:tidy` afterwards.
+   § RESUME HERE, and suggest `local-context-tidy` afterwards.
 2. `IMPLEMENTATION_PLAN.md`: `grep -n '^#'` for the outline, then ranged reads of § START HERE, the
    next open task(s), § Blocked on a decision, § Verification commands, § Do NOT do (YAGNI).
 3. If CURRENT/plan point at a sibling folder of the same feature in another repo (container repo
@@ -59,13 +61,13 @@ Everything read is re-sent on every later turn, so load only what the work needs
 4. Quick drift check: `git log --oneline -10` and `git status --short` against § START HERE. If the
    plan says a task is next but a commit already did it, or a cited SHA does not exist
    (`git cat-file -t <sha>`), report it and ask whether to fix the record first or run
-   `/local-context:tidy`. Do not silently pick one of two disagreeing files — say they disagree.
+   `local-context-tidy`. Do not silently pick one of two disagreeing files — say they disagree.
 5. Missing file: no `IMPLEMENTATION_PLAN.md` → offer to write one from what CURRENT says (same
    template as `new`); no `CURRENT.md` → the folder is not a feature, ask.
 
 ## 3 — Agree the session setup (one `AskUserQuestion` call)
 
-Parse `$ARGUMENTS` first: anything the user already stated (skills, levels like `/caveman full`,
+Parse the arguments first: anything the user already stated (skills, levels like `/caveman full`,
 extra rules) is decided — do not ask it again, apply it.
 
 **Skills.** Check the available-skills list for `caveman` and `ponytail` (often plugin-prefixed,
@@ -138,11 +140,12 @@ is complete — a truncated plan is lost history.
   move the replaced prose to ARCHIVE verbatim; § RESUME HERE names the next step.
 - **ARCHIVE**: one dated entry for the session, prepended newest first — use the tidy skill's
   script so the old content is proven intact:
-  `python3 ${CLAUDE_SKILL_DIR}/../tidy/scripts/lc_tools.py prepend <entry.md> <ARCHIVE.md>`
+  `python3 <this skill folder>/../local-context-tidy/scripts/lc_tools.py prepend <entry.md> <ARCHIVE.md>`
+  (if that script is missing, insert above the newest entry and check the line count only grew)
 - Never commit or push `.local_context/`.
 
 Do this after each task and before handing off (end of session, `/compact`, `/clear`), so the next
-`/local-context:continue` starts from files that match `git log`.
+`local-context-continue` starts from files that match `git log`.
 
 ## 7 — Hand-off
 
