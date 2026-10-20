@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.5.1 - 2026-10-20
+
+- Changed
+  - `local-context-continue` no longer uses caveman for commit messages, code comments, `.local_context` files or
+    ticket comments: those stay plain prose, as caveman's own rules ask. Caveman is still offered for exploration and
+    subagent prompts.
+  - `local-context-business-questions` no longer names a specific Atlassian MCP call for reading ticket comments; it
+    says comments often need a separate call in any MCP ticket tool.
+
 ## 0.5.0 - 2026-10-19
 
 - Changed
