@@ -13,7 +13,7 @@ carries it forward. Typical calls:
 ```
 local-context-continue ruby_rails_upgrade
 local-context-continue let's continue the implementation of @.local_context/ruby_rails_upgrade.
-                        Mandatory skills: caveman for exploration and commits, ponytail for code.
+                        Mandatory skills: caveman for exploration, ponytail for code.
 ```
 
 The folder contract is the one `new` writes:
@@ -75,9 +75,11 @@ e.g. `caveman:caveman`, `ponytail:ponytail`). For each one that exists and the u
 already decide, ask whether to use it this session (recommend yes). Skip the ones not installed
 and say so in one line.
 
-- **caveman** — for exploration, subagent prompts and answers, and commit messages. **Not** for
-  what you tell the user about what happened and what you are doing: that stays plain, brief,
-  understandable sentences. Code, `file:line`, SHAs, error strings, commands stay verbatim.
+- **caveman** — for exploration, and subagent prompts and answers. **Not** for what you tell the
+  user about what happened and what you are doing: that stays plain, brief, understandable
+  sentences. Not for anything persisted either (commit messages, code comments, `.local_context`
+  files, ticket comments): caveman itself writes those in plain prose. Code, `file:line`, SHAs,
+  error strings, commands stay verbatim.
 - **ponytail** — for code thinking and implementation.
 
 Once agreed, load each with the `Skill` tool. **Subagents do not inherit loaded skills**: when a

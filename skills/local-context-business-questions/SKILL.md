@@ -49,7 +49,7 @@ Everything read is re-sent on every later turn.
 2. `IMPLEMENTATION_PLAN.md`: `grep -n '^#'`, then § Blocked / open questions only.
    `BUSINESS.md` in full, if it exists: these rules are settled and are never asked again.
 3. The ticket: key from CURRENT/plan. Description **and comments** (comments hold the latest status;
-   with the Atlassian MCP, comments need `listJiraIssueComments`). Linked tickets: summary only.
+   with an MCP ticket tool, comments are often a separate call from the issue). Linked tickets: summary only.
 4. Cross-feature files CURRENT points to (an open-issues list, a sibling feature): only the sections
    it names. Do not sweep sibling features "just in case".
 5. The project's own docs that state business rules: `BUSINESS.md`, `DOCUMENTATION.md`,
