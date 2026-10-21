@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.5.2 - 2026-10-21
+
+- Changed
+  - Every skill now takes the feature folder only from your arguments. Before, `local-context-continue` could open
+    `ruby_rails_upgrade` even when you named another folder or none, because the skill's own examples used that name.
+    Other skills had the same risk with `report_mailing_list` and similar example names. All examples now use a
+    `<feature_name>` placeholder.
+
 ## 0.5.1 - 2026-10-20
 
 - Changed
