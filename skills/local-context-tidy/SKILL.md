@@ -41,8 +41,9 @@ sed '/^```/,/^```/d' FILE | grep '^#' | sed -E 's/^#+ *//; s/ — .*| ✅.*| ⛔
 
 ## 0 — Pick the folder
 
-- The arguments name it (`tidy ruby_rails_upgrade`, `clean the ruby_rails_upgrade`) → use it. Match
-  loosely (case, `-`/`_`, a unique prefix) and say which folder you matched.
+- The arguments name it (`tidy <feature_name>`, `clean the <feature_name>`) → use it. Match
+  loosely (case, `-`/`_`, a unique prefix) and say which folder you matched. `<feature_name>` is a
+  placeholder: never look for a folder named in an example.
 - No argument → list the subfolders of `.local_context/` (project root: `git rev-parse
   --show-toplevel`, else cwd) with each one's `CURRENT.md` line count, and ask which one with
   `AskUserQuestion` (or a plain question if the agent has no such tool). Recommend the largest or most recently modified, and say why.

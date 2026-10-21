@@ -34,11 +34,11 @@ win over this table — read them first and follow them.
    `ls -la`, and write through the symlink, never replace it with a directory.
 
 2. **Derive `<feature_name>`** — lowercase `snake_case`, the rule the folder name must follow:
-   - A single token (`automatic_reports`, `report-templates`, `ReportTemplates`) → normalise it
-     (`report_templates`).
-   - A phrase or anything with spaces ("upgrade ruby and rails to latest") → make a short title
-     of 2–4 words that names the work, not the sentence (`ruby_rails_upgrade`), and say which name
-     you chose and why in one line.
+   - A single token (`Some-Name`, `SomeName`) → normalise it (`some_name`).
+   - A phrase or anything with spaces → make a short title of 2–4 words that names the work, not
+     the sentence, and say which name you chose and why in one line.
+   - The name comes only from the user's arguments. Names in this file are placeholders, never
+     folders to look for.
    - If `.local_context/<feature_name>/` already exists, **stop** and ask: use it (then this skill
      does nothing — suggest `local-context-tidy`), or pick another name. Never overwrite.
 

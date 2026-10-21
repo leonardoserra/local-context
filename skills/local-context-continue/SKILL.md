@@ -11,10 +11,13 @@ Picks up a feature created by `local-context-new` (and cleaned by `local-context
 carries it forward. Typical calls:
 
 ```
-local-context-continue ruby_rails_upgrade
-local-context-continue let's continue the implementation of @.local_context/ruby_rails_upgrade.
+local-context-continue <feature_name>
+local-context-continue let's continue the implementation of @.local_context/<feature_name>.
                         Mandatory skills: caveman for exploration, ponytail for code.
 ```
+
+`<feature_name>` is a placeholder. The folder comes only from the user's arguments (step 1);
+never look for a folder named in these examples.
 
 The folder contract is the one `new` writes:
 
@@ -34,9 +37,9 @@ per-project constraints (who runs tests, never push, approval before each change
 Project root: `git rev-parse --show-toplevel`, else cwd. `.local_context` may be a symlink (git
 worktrees) — resolve it, write through it.
 
-- **Exact name or path** in the arguments (`ruby_rails_upgrade`, `@.local_context/ruby_rails_upgrade`,
-  `Ruby-Rails-Upgrade`, a unique prefix) → use it, say which folder matched.
-- **A phrase** ("the rails upgrade thing", "the reports mailing work") → infer the best match from
+- **Exact name or path** in the arguments (`<feature_name>`, `@.local_context/<feature_name>`,
+  a different case or `-`/`_`, a unique prefix) → use it, say which folder matched.
+- **A phrase** (a description, not a folder name) → infer the best match from
   folder names (and, if names are not enough, the first lines of each `CURRENT.md`), then confirm
   with `AskUserQuestion` (or a plain question if the agent has no such tool): inferred folder first, labelled `(Recommended)`, plus the next closest.
   Never proceed on an inference without that confirmation — continuing the wrong feature edits the

@@ -12,9 +12,12 @@ business has to take**, phrased so the decision-maker can answer each one withou
 Typical calls:
 
 ```
-local-context-business-questions report_mailing_list
-local-context-business-questions shared_template_and_automatic_report — boss call on Thursday, ticket BAI-454
+local-context-business-questions <feature_name>
+local-context-business-questions <feature_name> — boss call on Thursday, ticket <TICKET-KEY>
 ```
+
+`<feature_name>` and `<TICKET-KEY>` are placeholders. The folder and ticket come only from the
+user's arguments (step 1); never look for anything named in these examples.
 
 The work is a loop with the user, not a one-shot report: the first draft is always wrong in some
 places — the user answers some questions themselves, rejects others, fixes the vocabulary, or
