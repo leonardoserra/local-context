@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.1.0 - 2026-11-09
+
+- Changed
+  - `local-context-crn` now asks, after each group you approve, whether to remove the review worktrees, naming
+    their paths (e.g. `~/.cache/local-context-crn/<project>/<feature>/<repo>`). Say yes when you stop for the
+    day; the next group recreates them. It then asks whether to open the next group instead of opening it
+    straight away. Before, removal was offered only after the last group.
+  - Removing the review worktrees also removes the feature's now empty folder under `~/.cache/local-context-crn/`.
+  - A `crn.sh` call with the map missing or out of place (e.g. `crn.sh reviewed 1`) now says the map always comes
+    first. Before, it only printed "no map: 1".
+  - The README examples use a Rust feature (`axum_migration`) and three Rust `<crn>` comments: two instructions
+    and one question.
+
 ## 1.0.2 - 2026-11-09
 
 - Changed
