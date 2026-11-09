@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.1 - 2026-11-09
+
+- Changed
+  - The README has a new guide, "Reviewing a large merge request": how to map a feature's changes with
+    `local-context-code-review-mapping`, then review them group by group with `local-context-crn` (IDE choice,
+    review worktrees, `<crn>` comments, applying edits on OK).
+
 ## 1.0.0 - 2026-11-09
 
 - Changed
