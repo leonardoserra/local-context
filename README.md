@@ -32,6 +32,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
 | `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with backend and frontend together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
+| `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: opens the IDE you name (it finds its launcher) on a throwaway worktree per repo where only that group's changes show. Answers questions, makes edits and handles `<crn> … </crn>` comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
 
@@ -93,8 +94,8 @@ npx skills add leonardoserra/local-context -g -a codex          # or -a opencode
 npx skills update                                               # later, to update
 ```
 
-Leave out `-g` to install into the current project only. Install all six skills together:
-`local-context-start` reads its sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
+Leave out `-g` to install into the current project only. Install all the skills together:
+`local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
 ### Upgrading from 0.2.x
@@ -109,7 +110,9 @@ The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:lo
   plugin.json          # plugin manifest
   marketplace.json     # makes this repo its own marketplace
 skills/
-  local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping
+  local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping,
+                                           # code-review-mapping-navigator, crn (alias)
+  local-context-code-review-mapping-navigator/scripts/crn.sh  # review worktrees: prepare, stage, crn, apply, cleanup
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
 ```
 
