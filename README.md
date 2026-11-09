@@ -41,11 +41,60 @@ Examples (Claude Code):
 /local-context:local-context-continue ruby_rails_upgrade. Mandatory skills: caveman for exploration, ponytail for code.
 /local-context:local-context-tidy ruby_rails_upgrade
 /local-context:local-context-code-review-mapping ruby_rails_upgrade
+/local-context:local-context-crn ruby_rails_upgrade
 ```
 
 `local-context-continue` offers the optional caveman and ponytail
 skills if you have them installed; it works fine without them. If a project's `CLAUDE.md` defines its own
 `.local_context/` rules, those take precedence.
+
+## Reviewing a large merge request
+
+Two skills turn a merge request too big to read file by file into small reviews, one functionality at a time.
+They work across a container repo and its submodules, e.g. a backend and a frontend changed together.
+
+### 1. Map the changes
+
+```
+/local-context:local-context-code-review-mapping <feature>
+```
+
+Writes `.local_context/<feature>/CODE_REVIEW_MAPPING.md`: every file the feature's branches change, grouped by the
+capability it implements (backend and frontend side by side, specs with the code they test), in reading order,
+foundations first. Each group has a `Read for:` hint and one command per side that opens all its files. A coverage
+check proves no changed file is left out. Run it again whenever the branches move; never edit the map by hand.
+
+### 2. Review it group by group
+
+```
+/local-context:local-context-crn <feature>            # every group, starting from 1
+/local-context:local-context-crn <feature> 4          # only group 4
+/local-context:local-context-crn <feature> 2 zed      # name the IDE up front
+```
+
+`local-context-crn` is the short alias of `local-context-code-review-mapping-navigator`.
+
+1. It asks once which IDE you use and finds its command-line launcher (on `PATH`, else from the web, else it asks
+   you for the path). Terminal editors such as Neovim get a command to run yourself.
+2. For each repo the group touches it prepares a review worktree under `~/.cache/local-context-crn/` and opens your
+   IDE on it: two repos, two windows. Your own checkouts are not touched.
+3. In the IDE's git view, the **staged changes** are exactly this group's part of the merge request. Read them like
+   a small merge request.
+4. While you read:
+   - ask anything ("why is this query grouped before the join?"), or give a path;
+   - ask for an edit, which is made in the review worktree;
+   - or write comments for the agent in the code, in the file's comment syntax, save, and say "read the crn":
+
+     ```ruby
+     # <crn> use a better name for the const </crn>
+     KEY_EXPRESSIONS = {
+       'id_media' => Detection.ar[:id_media], # <crn> don't use Arel here </crn>
+     ```
+
+     Each `<crn>` is done or answered, then removed. Only comments you add during the review count.
+5. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and the next group
+   opens. Nothing is ever committed or pushed for you.
+6. After the last group it offers to remove the review worktrees.
 
 ## Install
 
