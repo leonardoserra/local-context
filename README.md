@@ -37,11 +37,11 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 Examples (Claude Code):
 
 ```
-/local-context:local-context-new the new task is called ruby rails upgrade it is about upgrading to Rails 8
-/local-context:local-context-continue ruby_rails_upgrade. Mandatory skills: caveman for exploration, ponytail for code.
-/local-context:local-context-tidy ruby_rails_upgrade
-/local-context:local-context-code-review-mapping ruby_rails_upgrade
-/local-context:local-context-crn ruby_rails_upgrade
+/local-context:local-context-new the new task is called axum migration, it moves the HTTP server from actix-web to axum
+/local-context:local-context-continue axum_migration. Mandatory skills: caveman for exploration, ponytail for code.
+/local-context:local-context-tidy axum_migration
+/local-context:local-context-code-review-mapping axum_migration
+/local-context:local-context-crn axum_migration
 ```
 
 `local-context-continue` offers the optional caveman and ponytail
@@ -85,18 +85,35 @@ check proves no changed file is left out. Run it again whenever the branches mov
    - ask for an edit, which is made in the review worktree;
    - or write comments for the agent in the code, in the file's comment syntax, save, and say "read the crn":
 
-     ```ruby
-     # <crn> use a better name for the const </crn>
-     KEY_EXPRESSIONS = {
-       'id_media' => Detection.ar[:id_media], # <crn> don't use Arel here </crn>
+     ```rust
+     // <crn> rename to OrderStatus, "State" clashes with axum::extract::State </crn>
+     pub enum State {
+         Pending,
+         Shipped { tracking_code: String },
+     }
      ```
 
-     Each `<crn>` is done or answered, then removed. Only comments you add during the review count.
-5. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and the next group
-   opens. Nothing is ever committed or pushed for you. The group's heading in `CODE_REVIEW_MAPPING.md` gets
+     ```rust
+     async fn get_order(Path(order_id): Path<u64>, State(pool): State<PgPool>) -> Json<Order> {
+         let order = fetch_order(&pool, order_id).await.unwrap(); // <crn> return 404 instead of panicking </crn>
+         Json(order)
+     }
+     ```
+
+     ```rust
+     // <crn> why a Mutex and not an RwLock? reads far outnumber writes here </crn>
+     let price_cache = Arc::new(Mutex::new(HashMap::<ProductId, Price>::new()));
+     ```
+
+     The first and second are instructions, so the agent makes the change; the third is a question, answered in
+     chat with its `file:line`. Each `<crn>` is done or answered, then removed. Only comments you add during the
+     review count.
+5. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and it asks whether to
+   open the next group. Nothing is ever committed or pushed for you. The group's heading in `CODE_REVIEW_MAPPING.md` gets
    ` ✅ reviewed`, so the next session (tomorrow, say) starts at the first group not yet reviewed. Regenerating
    the map clears the marks.
-6. After the last group it offers to remove the review worktrees.
+6. After each group it asks whether to remove the review worktrees (it names their paths), e.g. when you stop
+   for the day; the next group recreates them. After the last group it asks again if they are still there.
 
 ## Install
 

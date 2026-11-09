@@ -148,11 +148,19 @@ On the user's OK for the group:
      stop: once the user has resolved them, discard that worktree's edits (step 1 command), never apply
      again.
    - Exit 0 → `crn.sh reviewed <map> <n>`.
+
+   Every `crn.sh` call takes the map right after the command: `crn.sh reviewed <map> <n>`, never
+   `crn.sh reviewed <n>`.
 4. Say what is now uncommitted in which checkout. Run the checks the project names for those files
    (specs, lint) in the user's checkout when the user wants them.
-5. A single group was asked → step 6. Else open the next unreviewed group (step 3). None left → step 6.
+5. Ask whether to remove the review worktrees now, naming each path (`<worktree>` per `crn.sh status <map>`
+   header line): they are throwaway and reviewing can resume another day. Yes → `crn.sh cleanup <map>`;
+   the next `prepare` recreates them.
+6. A single group was asked → step 6. Else ask whether to open the next unreviewed group (step 3) or stop
+   for now. None left → step 6.
 
 ## 6 — Finish
 
-Ask whether to remove the review worktrees; yes → `crn.sh cleanup <map>`. Summary: groups reviewed, edits
+Worktrees still there (`crn.sh status <map>` prints a header line) → ask whether to remove them, naming
+each path; yes → `crn.sh cleanup <map>`. Summary: groups reviewed, edits
 applied per repo (uncommitted), `<crn>` comments answered, anything left open.

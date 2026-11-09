@@ -17,7 +17,7 @@ set -euo pipefail
 
 command=${1:?command}
 map=${2:?map}
-[ -f "$map" ] || { echo "no map: $map" >&2; exit 1; }
+[ -f "$map" ] || { echo "no map: $map (usage: crn.sh $command <map> ..., the map always comes first)" >&2; exit 1; }
 root=$(git rev-parse --show-toplevel)
 root_name=$(basename "$root")
 feature=$(basename "$(dirname "$map")")
@@ -164,6 +164,7 @@ case $command in
       git -C "$(repo_dir "$name")" worktree remove --force "$worktrees_root/$name"
       rm -f "$worktrees_root/$name.tree" "$worktrees_root/$name.patch"
     done
+    rmdir "$worktrees_root" 2>/dev/null || true
     ;;
 
   *) echo "unknown command: $command" >&2; exit 1 ;;
