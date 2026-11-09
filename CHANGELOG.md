@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.2 - 2026-11-09
+
+- Changed
+  - `local-context-crn` now remembers approved groups. On your OK for a group, its heading in
+    `CODE_REVIEW_MAPPING.md` gets ` ✅ reviewed`. Run `local-context-crn <feature>` again later (the next day, say)
+    and it starts at the first group not yet reviewed, skipping the marked ones. Before, it always started at
+    group 1.
+  - With every group marked, it says so and asks whether to review again from group 1 or finish. A group number
+    (`local-context-crn <feature> 4`) still opens that group, reviewed or not.
+  - Regenerating the map with `local-context-code-review-mapping` clears the marks: the branches moved, so the
+    review starts over.
+
 ## 1.0.1 - 2026-11-09
 
 - Changed
