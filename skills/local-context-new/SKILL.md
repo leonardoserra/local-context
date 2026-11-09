@@ -22,6 +22,7 @@ can read one short file and act.
 | `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks, each with repo, dependencies, `file:line` anchors, a **Done when** line; verification commands; a **Do NOT do (YAGNI)** table | never delete a shipped task — mark it `✅ DONE <date> (<sha>)`; blocked work goes under its own heading with the blocking question, never as a task with an invented default |
 | `ARCHIVE.md` | dated history, newest entry first, append-only | never rewrite old entries |
 | `BUSINESS.md` *(optional)* | the business rules of the feature: what it must do for users, clients and the company — scope, who gets/sees/edits what, data, timing. No technical rules | only when the work defines or changes business behaviour (a pure bug fix or upgrade has none); replace a rule when it changes, the old wording goes to ARCHIVE; never record who asked for a rule as a category — a rule is a rule |
+| `CODE_REVIEW_MAPPING.md` *(optional)* | a reading map of the feature's changed files, grouped by functionality, backend and frontend together | never created here — written and regenerated only by `local-context-code-review-mapping`; derived from the branches, never edited by hand |
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules, those
 win over this table — read them first and follow them.

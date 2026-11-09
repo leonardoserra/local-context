@@ -9,6 +9,7 @@ A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any 
 | `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks with anchors and a **Done when** line, verification commands, a "Do NOT do (YAGNI)" table |
 | `ARCHIVE.md` | dated history, newest first, append-only |
 | `BUSINESS.md` *(optional)* | the feature's business rules only (scope, who gets/sees what, data, timing), whoever decided them; not created for pure technical work such as a bug fix |
+| `CODE_REVIEW_MAPPING.md` *(optional)* | a reading map of the feature's changed files, grouped by functionality with backend and frontend side by side; derived from the branches and regenerated, never edited by hand |
 
 `.local_context/` is git-ignored automatically and never committed.
 
@@ -30,6 +31,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
+| `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with backend and frontend together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
 
 Examples (Claude Code):
 
@@ -37,6 +39,7 @@ Examples (Claude Code):
 /local-context:local-context-new the new task is called ruby rails upgrade it is about upgrading to Rails 8
 /local-context:local-context-continue ruby_rails_upgrade. Mandatory skills: caveman for exploration, ponytail for code.
 /local-context:local-context-tidy ruby_rails_upgrade
+/local-context:local-context-code-review-mapping ruby_rails_upgrade
 ```
 
 `local-context-continue` offers the optional caveman and ponytail
@@ -90,7 +93,7 @@ npx skills add leonardoserra/local-context -g -a codex          # or -a opencode
 npx skills update                                               # later, to update
 ```
 
-Leave out `-g` to install into the current project only. Install all five skills together:
+Leave out `-g` to install into the current project only. Install all six skills together:
 `local-context-start` reads its sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
@@ -106,7 +109,7 @@ The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:lo
   plugin.json          # plugin manifest
   marketplace.json     # makes this repo its own marketplace
 skills/
-  local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions
+  local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
 ```
 

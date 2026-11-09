@@ -15,6 +15,9 @@ Brings one `.local_context/<feature_name>/` back to its contract:
   matching HEAD / remote / next task, every filed follow-up a task or an index row.
 - **`BUSINESS.md`** *(optional)* — the feature's business rules only, no technical ones. Business
   rules found in CURRENT move here.
+- **`CODE_REVIEW_MAPPING.md`** *(optional)* — a derived reading map written by
+  `local-context-code-review-mapping`. Out of scope: never read, merged, moved or deleted here.
+  The same holds for any other file in the folder (e.g. `API.md`, `REVIEW.md`).
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules, read
 them first; they win over this file, and their per-project constraints (who runs tests, never
