@@ -175,6 +175,8 @@ code "<root>/<repo>/path/to/frontend/file.vue"
 - `<repo>` in the table is the repo's path from the project root (the first segment of its file paths);
   the root repo itself is its folder name (`basename` of the project root).
   `local-context-code-review-mapping-navigator` reads the table this way.
+- `local-context-code-review-mapping-navigator` appends ` ✅ reviewed` to a group's heading once the
+  user approves it. Regenerating the map drops these marks: the branches moved, so review again.
 - Omit an empty side (`frontend:` with nothing under it is not written).
 - `open:` gives one command per side that opens all of that side's files at once. `<root>` is
   the absolute project root (`git rev-parse --show-toplevel`); quote every path. Specs go in the

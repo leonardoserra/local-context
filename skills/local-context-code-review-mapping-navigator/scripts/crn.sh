@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # crn.sh — code review navigator worktrees for a CODE_REVIEW_MAPPING.md. Run from the project root.
 #
-#   crn.sh list    <map>                  numbered group headings
+#   crn.sh list    <map>                  numbered group headings (reviewed ones end with " ✅ reviewed")
+#   crn.sh reviewed <map> <group>         marks the group reviewed in the map's heading, so a later session skips it
 #   crn.sh prepare <map> <group>          per repo of the group: review worktree at the mapped merge base, the
 #                                         group's files checked out (staged) from the mapped head; prints repo<TAB>worktree
 #   crn.sh stage   <map> <repo> <path>... bring the mapped head version of files outside the group in, before editing them
@@ -46,6 +47,12 @@ pending_edits() {
 case $command in
   list)
     awk '/^### /{i++; sub(/^### /,""); print i". "$0}' "$map"
+    ;;
+
+  reviewed)
+    group=${3:?group number}
+    awk -v n="$group" '/^### /{i++; if (i==n && $0 !~ / ✅ reviewed$/) $0=$0" ✅ reviewed"} {print}' "$map" > "$map.tmp"
+    mv "$map.tmp" "$map"
     ;;
 
   prepare)

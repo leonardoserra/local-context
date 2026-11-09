@@ -67,7 +67,7 @@ check proves no changed file is left out. Run it again whenever the branches mov
 ### 2. Review it group by group
 
 ```
-/local-context:local-context-crn <feature>            # every group, starting from 1
+/local-context:local-context-crn <feature>            # every group not yet reviewed, from the first one
 /local-context:local-context-crn <feature> 4          # only group 4
 /local-context:local-context-crn <feature> 2 zed      # name the IDE up front
 ```
@@ -93,7 +93,9 @@ check proves no changed file is left out. Run it again whenever the branches mov
 
      Each `<crn>` is done or answered, then removed. Only comments you add during the review count.
 5. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and the next group
-   opens. Nothing is ever committed or pushed for you.
+   opens. Nothing is ever committed or pushed for you. The group's heading in `CODE_REVIEW_MAPPING.md` gets
+   ` ✅ reviewed`, so the next session (tomorrow, say) starts at the first group not yet reviewed. Regenerating
+   the map clears the marks.
 6. After the last group it offers to remove the review worktrees.
 
 ## Install

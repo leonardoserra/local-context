@@ -27,7 +27,8 @@ If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context
 per-project constraints, **those win** over this file. Read them before step 1.
 
 Never commit, push or stash, in a review worktree or in the user's checkouts, unless the user explicitly
-says so. Never commit or push `.local_context/`. This skill edits no `.local_context/` file.
+says so. Never commit or push `.local_context/`. The only `.local_context/` edit this skill makes is the
+`✅ reviewed` mark on a group heading in `CODE_REVIEW_MAPPING.md` (`crn.sh reviewed`).
 
 ## The review worktree
 
@@ -47,7 +48,8 @@ the map's head SHA. In it:
 
 | Command | Does | Output, exit codes |
 |---|---|---|
-| `list <map>` | the groups | `<n>. <heading>`; total = line count |
+| `list <map>` | the groups | `<n>. <heading>`; total = line count; a reviewed group's heading ends with ` ✅ reviewed` |
+| `reviewed <map> <n>` | marks group `n` reviewed in its map heading (idempotent) | — |
 | `prepare <map> <n>` | resets the worktrees for group `n` | `repo<TAB>worktree` per repo of the group; exit 2 = review edits pending, nothing changed |
 | `stage <map> <repo> <path>...` | brings the head version of a file outside the group in, before editing it | exit 2 = the file is already edited, or the repo has no review worktree yet |
 | `crn <map>` | `<crn>` comments the review edits added | `<file>:<line>:<text>`; `<crn>` already in the branch's code is never listed |
@@ -91,7 +93,9 @@ after agent edits (Vim/Neovim: `:checktime`).
 
 ## 3 — Open a group
 
-Group = the number given, else 1, else the next one after the user's OK.
+Group = the number given (even if already reviewed), else the first group in `crn.sh list` without
+` ✅ reviewed`, else the next unreviewed one after the user's OK. Groups already marked: say which were
+skipped. All marked → say so and ask: review again from group 1, or finish (step 6).
 
 1. `crn.sh prepare <map> <n>`. Exit 2 → list the pending edits and ask: apply (step 5) or discard (the
    step 1 command).
@@ -131,7 +135,7 @@ Group = the number given, else 1, else the next one after the user's OK.
 
 On the user's OK for the group:
 
-1. `crn.sh status <map>`. Header lines only → step 3 for the next group.
+1. `crn.sh status <map>`. Header lines only → `crn.sh reviewed <map> <n>`, then item 5 below.
 2. Show the pending edits (`git -C <worktree> diff --stat "$(cat <worktree>.tree)"`, new files listed).
    If the user's checkout has uncommitted changes in those files
    (`git -C <checkout> status --porcelain -- <files>`), say so and ask: go on, or let the user commit or
@@ -143,9 +147,10 @@ On the user's OK for the group:
      patch (`<worktree>.patch`). If `--3way` left conflict markers in the checkout, report the files and
      stop: once the user has resolved them, discard that worktree's edits (step 1 command), never apply
      again.
+   - Exit 0 → `crn.sh reviewed <map> <n>`.
 4. Say what is now uncommitted in which checkout. Run the checks the project names for those files
    (specs, lint) in the user's checkout when the user wants them.
-5. A single group was asked → step 6. Else open the next group (step 3). After the last group → step 6.
+5. A single group was asked → step 6. Else open the next unreviewed group (step 3). None left → step 6.
 
 ## 6 — Finish
 
