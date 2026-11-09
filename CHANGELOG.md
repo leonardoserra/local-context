@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.6.0 - 2026-11-09
+
+- Changed
+  - New skill `local-context-code-review-mapping` (`/local-context:local-context-code-review-mapping <feature>`) writes
+    `.local_context/<feature>/CODE_REVIEW_MAPPING.md`: a reading map of every file the feature's branches change,
+    across a container repo and its submodules, grouped by functionality with backend and frontend files together and
+    ordered for reading (foundations first). It checks that every changed file is mapped and lists files that sit in
+    more than one group. It maps only; it does not review the code.
+  - `CODE_REVIEW_MAPPING.md` is a new optional file of the folder contract. It is derived from the branches and
+    regenerated on every run; `local-context-tidy` never reads, merges or deletes it.
+
 ## 0.5.2 - 2026-10-21
 
 - Changed
