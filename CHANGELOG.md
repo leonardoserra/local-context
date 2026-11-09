@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.0 - 2026-11-09
+
+- Changed
+  - New skill `local-context-code-review-mapping-navigator` (alias `local-context-crn`), e.g.
+    `/local-context:local-context-crn <feature>`, reviews a feature's `CODE_REVIEW_MAPPING.md` one group at a time.
+    For each group it opens your IDE on a throwaway worktree per repo (under `~/.cache/local-context-crn/`) where
+    only that group's changes show, as staged changes, so the IDE's changes view reads like a small merge request.
+    It asks once which IDE you use and finds its command-line launcher: on PATH, else from the web, else it asks
+    you for the path. With two repos in a group it opens two windows.
+  - While you review, ask questions, ask for edits, or leave comments in the code such as
+    `# <crn> use a better name for the const </crn>` and say "read the crn": each one is done or answered, then
+    removed. Edits stay in the review worktree, next to the branch's staged changes, until you say OK. Only
+    `<crn>` comments added during the review count; one already in the branch's code is ignored.
+  - On OK the edits are applied to the feature branch checkout, uncommitted, and the next group opens. Give a
+    group number (`local-context-crn <feature> 4`) to review only that group. The navigator never commits.
+  - `local-context-code-review-mapping` now states how the map names repos: the path from the project root, and
+    the root repo by its folder name. The navigator reads the map this way.
+
 ## 0.6.1 - 2026-11-09
 
 - Changed
