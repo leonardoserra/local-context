@@ -1,7 +1,7 @@
 ---
 name: local-context-code-review-mapping
 description: For one feature in .local_context/<feature_name>/, write CODE_REVIEW_MAPPING.md — a reading map of every file the feature's branches change, grouped by functionality with backend and frontend files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Maps, never reviews. Run by the user as local-context-code-review-mapping [feature_name | free text].
-argument-hint: "[feature_name] or free text naming the feature (optionally branches, base, repos)"
+argument-hint: "[feature_name] or free text naming the feature (optionally branches, base, repos, opener: code | zed | finder | explorer)"
 disable-model-invocation: true
 ---
 
@@ -17,6 +17,7 @@ Typical calls:
 ```
 local-context-code-review-mapping <feature_name>
 local-context-code-review-mapping <feature_name> — branches feature/<branch_name> in both repos, base develop
+local-context-code-review-mapping <feature_name> — open with zed
 ```
 
 `<feature_name>` and `<branch_name>` are placeholders. The folder comes only from the user's
@@ -136,7 +137,7 @@ Write `.local_context/<feature_name>/CODE_REVIEW_MAPPING.md` (the root-level fol
 feature; one map covers every repo). If the file exists, replace it whole: it is derived, and the
 header SHAs show when it went stale.
 
-```markdown
+````markdown
 # <feature_name> — code review mapping
 
 Generated <YYYY-MM-DD> by `local-context-code-review-mapping`. Derived from the branches below:
@@ -159,11 +160,29 @@ frontend:
 specs:
   - <repo>/spec/path/to/file_spec.rb
 
-### Other / mechanical — lockfiles, generated files, config
-  - <repo>/yarn.lock
+open:
+```sh
+# backend
+code "<root>/<repo>/path/to/backend/file.rb" "<root>/<repo>/spec/path/to/file_spec.rb"
+# frontend
+code "<root>/<repo>/path/to/frontend/file.vue"
 ```
 
+### Other / mechanical — lockfiles, generated files, config
+  - <repo>/yarn.lock
+````
+
 - Omit an empty side (`frontend:` with nothing under it is not written).
+- `open:` gives one command per side that opens all of that side's files at once. `<root>` is
+  the absolute project root (`git rev-parse --show-toplevel`); quote every path. Specs go in the
+  command of the side they test. Skip deleted files; a side left with no file gets no command.
+  `Other / mechanical` gets no `open:` block. The opener comes from the arguments:
+  - `code` (VS Code, default), `zed`, `cursor`: one command, all paths as arguments.
+  - `finder` (macOS): `open -R "<path>" "<path>"` reveals the files in Finder.
+  - `explorer` (Windows): Explorer takes one file per call, so chain
+    `explorer /select,"<path>"` calls with ` & `.
+  Build a side's command from its paths, e.g.
+  `sed "s|^|\"$root/|; s|$|\"|" <paths> | paste -sd' ' - | sed 's/^/code /'`.
 - Mark a deleted file `(deleted)` and a renamed one `(renamed from <old path>)` after its path.
 - When the project has more than one backend or frontend repo, the repo prefix tells them apart;
   the side labels stay `backend:` / `frontend:`.
@@ -194,3 +213,7 @@ Never commit or push `.local_context/`.
 
 A few lines: the map's path, the repos and ranges it covers, the number of groups, the coverage
 line, files in 2+ groups, any local commits not in the map, and the first group to read.
+
+Then print every group as in the map, in reading order: heading with its purpose, the backend,
+frontend and specs lists, and its `open:` block (backend command, frontend command), so the user
+can copy a command and open a whole side at once.
