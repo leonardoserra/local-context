@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.6.1 - 2026-11-09
+
+- Changed
+  - `local-context-code-review-mapping` now gives, for each group of the map, one command that opens all its backend
+    files and one that opens all its frontend files at once (e.g. `code "/repo/app/models/a.rb" "/repo/spec/a_spec.rb"`).
+    Specs open with the side they test. VS Code is the default; add `open with zed`, `cursor`, `finder` or `explorer`
+    to the call to get commands for those instead. The commands are written in `CODE_REVIEW_MAPPING.md` and printed
+    with every group at the end of the run.
+
 ## 0.6.0 - 2026-11-09
 
 - Changed
