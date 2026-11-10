@@ -1,6 +1,6 @@
 ---
 name: local-context-code-review-mapping
-description: For one feature in .local_context/<feature_name>/, write CODE_REVIEW_MAPPING.md — a reading map of every file the feature's branches change, grouped by functionality with backend and frontend files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Maps, never reviews. Run by the user as local-context-code-review-mapping [feature_name | free text].
+description: For one feature in .local_context/<feature_name>/, write CODE_REVIEW_MAPPING.md — a reading map of every file the feature's branches change, grouped by functionality with each repo's files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Maps, never reviews. Run by the user as local-context-code-review-mapping [feature_name | free text].
 argument-hint: "[feature_name] or free text naming the feature (optionally branches, base, repos, opener: code | zed | finder | explorer)"
 disable-model-invocation: true
 ---
@@ -10,8 +10,8 @@ disable-model-invocation: true
 A feature's merge requests are often too large for a person to review file by file: the diff
 lists files alphabetically or by directory, so the logic that links a migration, a controller and
 a Vue view is spread across dozens of unrelated entries. This skill writes a **reading map**:
-every changed file, grouped by the capability it implements, backend and frontend together, in
-an order that lets the reviewer read one group and understand it without the rest.
+every changed file, grouped by the capability it implements across repos, in an order that
+lets the reviewer read one group and understand it without the rest.
 Typical calls:
 
 ```
@@ -95,8 +95,8 @@ Infer the groups from cheap signals, not from full diffs:
 - the commit subjects from step 3;
 - the plan's task titles (`grep -n '^#' IMPLEMENTATION_PLAN.md`): tasks often already name the
   capabilities;
-- file names: the same noun on both sides (`report_template.rb`, `ReportTemplate.ts`,
-  `reportTemplates` http mixin, `ReportTemplateForm.vue`);
+- file names: the same noun in backend and frontend files (`report_template.rb`,
+  `ReportTemplate.ts`, `reportTemplates` http mixin, `ReportTemplateForm.vue`);
 - routes ↔ frontend calls: grep the changed frontend files for the endpoint paths the changed
   routes and controllers define;
 - for a file whose role is still unclear, a targeted read: `git diff <range> -- <file> | head -80`.
@@ -113,7 +113,7 @@ Grouping rules:
   model, query or service, controller, serializer, routes, jobs, rake tasks) with the frontend
   files (models, http mixins, store, components, views) that implement the same capability.
   `models/` or `controllers/` is never a group.
-- **A group with only one side is fine**, e.g. a backend-only import job.
+- **A group may touch one repo only**, e.g. a backend-only import job.
 - **Specs sit with the code they test**, in the group's own `specs:` list, never in a test group.
 - **A shared file** that several capabilities touch (a routes file, a model registry, a store
   index) goes in the group it mainly serves. If it serves several, list it in each and flag it
@@ -153,19 +153,19 @@ frontend model, http mixin, store, component, view).
 
 ### <functionality name> — <purpose, one line>
 Read for: <what to verify, one line — optional>
-backend:
-  - <repo>/path/to/backend/file.rb
-frontend:
-  - <repo>/path/to/frontend/file.vue
+<repo>:
+  - <repo>/path/to/file.rb
+<other_repo>:
+  - <other_repo>/path/to/file.vue
 specs:
   - <repo>/spec/path/to/file_spec.rb
 
 open:
 ```sh
-# backend
-code "<root>/<repo>/path/to/backend/file.rb" "<root>/<repo>/spec/path/to/file_spec.rb"
-# frontend
-code "<root>/<repo>/path/to/frontend/file.vue"
+# <repo>
+code "<root>/<repo>/path/to/file.rb" "<root>/<repo>/spec/path/to/file_spec.rb"
+# <other_repo>
+code "<root>/<other_repo>/path/to/file.vue"
 ```
 
 ### Other / mechanical — lockfiles, generated files, config
@@ -177,20 +177,21 @@ code "<root>/<repo>/path/to/frontend/file.vue"
   `local-context-code-review-mapping-navigator` reads the table this way.
 - `local-context-code-review-mapping-navigator` appends ` ✅ reviewed` to a group's heading once the
   user approves it. Regenerating the map drops these marks: the branches moved, so review again.
-- Omit an empty side (`frontend:` with nothing under it is not written).
-- `open:` gives one command per side that opens all of that side's files at once. `<root>` is
-  the absolute project root (`git rev-parse --show-toplevel`); quote every path. Specs go in the
-  command of the side they test. Skip deleted files; a side left with no file gets no command.
+- List a group's files per repo under `<repo>:`, with `<repo>` exactly as in the table, in table
+  order. Never use a role label (`backend:`, `frontend:`, `<repo> (backend):`). One list per repo,
+  even when it holds both server and client code. Omit a repo with no file in the group.
+- `open:` has one command per repo, under a `# <repo>` comment, opening at once its `<repo>:` files
+  and its files from `specs:`. `<root>` is the absolute project root
+  (`git rev-parse --show-toplevel`); quote every path. Skip deleted files; a repo left with no file
+  gets no command.
   `Other / mechanical` gets no `open:` block. The opener comes from the arguments:
   - `code` (VS Code, default), `zed`, `cursor`: one command, all paths as arguments.
   - `finder` (macOS): `open -R "<path>" "<path>"` reveals the files in Finder.
   - `explorer` (Windows): Explorer takes one file per call, so chain
     `explorer /select,"<path>"` calls with ` & `.
-  Build a side's command from its paths, e.g.
+  Build a repo's command from its paths, e.g.
   `sed "s|^|\"$root/|; s|$|\"|" <paths> | paste -sd' ' - | sed 's/^/code /'`.
 - Mark a deleted file `(deleted)` and a renamed one `(renamed from <old path>)` after its path.
-- When the project has more than one backend or frontend repo, the repo prefix tells them apart;
-  the side labels stay `backend:` / `frontend:`.
 - `Read for:` is a pointer, not a finding: "the date window the query applies", not "this query is
   slow".
 - Nothing else: no review, no diff excerpts, no summary of the code.
@@ -219,6 +220,5 @@ Never commit or push `.local_context/`.
 A few lines: the map's path, the repos and ranges it covers, the number of groups, the coverage
 line, files in 2+ groups, any local commits not in the map, and the first group to read.
 
-Then print every group as in the map, in reading order: heading with its purpose, the backend,
-frontend and specs lists, and its `open:` block (backend command, frontend command), so the user
-can copy a command and open a whole side at once.
+Then print every group as in the map, in reading order: heading, `Read for:`, the `<repo>:` and
+`specs:` lists, and the `open:` block, so the user can copy one command to open a repo's files.

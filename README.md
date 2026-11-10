@@ -9,7 +9,7 @@ A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any 
 | `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks with anchors and a **Done when** line, verification commands, a "Do NOT do (YAGNI)" table |
 | `ARCHIVE.md` | dated history, newest first, append-only |
 | `BUSINESS.md` *(optional)* | the feature's business rules only (scope, who gets/sees what, data, timing), whoever decided them; not created for pure technical work such as a bug fix |
-| `CODE_REVIEW_MAPPING.md` *(optional)* | a reading map of the feature's changed files, grouped by functionality with backend and frontend side by side; derived from the branches and regenerated, never edited by hand |
+| `CODE_REVIEW_MAPPING.md` *(optional)* | a reading map of the feature's changed files, grouped by functionality with each repo's files side by side; derived from the branches and regenerated, never edited by hand |
 
 `.local_context/` is git-ignored automatically and never committed.
 
@@ -31,7 +31,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
-| `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with backend and frontend together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
+| `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
 | `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: opens the IDE you name (it finds its launcher) on a throwaway worktree per repo where only that group's changes show. Answers questions, makes edits and handles `<crn> … </crn>` comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
@@ -60,8 +60,8 @@ They work across a container repo and its submodules, e.g. a backend and a front
 ```
 
 Writes `.local_context/<feature>/CODE_REVIEW_MAPPING.md`: every file the feature's branches change, grouped by the
-capability it implements (backend and frontend side by side, specs with the code they test), in reading order,
-foundations first. Each group has a `Read for:` hint and one command per side that opens all its files. A coverage
+capability it implements (each repo's files side by side under the repo name, specs with the code they test), in reading order,
+foundations first. Each group has a `Read for:` hint and one command per repo that opens all its files. A coverage
 check proves no changed file is left out. Run it again whenever the branches move; never edit the map by hand.
 
 ### 2. Review it group by group

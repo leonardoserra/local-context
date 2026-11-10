@@ -99,11 +99,12 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
 
 1. `crn.sh prepare <map> <n>`. Exit 2 → list the pending edits and ask: apply (step 5) or discard (the
    step 1 command).
-2. Print the group exactly as in the map (heading, `Read for:`, the files per side) and `n / total`.
+2. Print the group exactly as in the map (heading, `Read for:`, the `<repo>:` and `specs:` lists) and
+   `n / total`.
 3. Per `repo<TAB>worktree` line, open the IDE: `<launcher> [new-window flag] "<worktree>"` (terminal
-   editor: print `cd "<worktree>" && <launcher>`). A group with backend and frontend opens two. A worktree
-   already open from an earlier group is not reopened: its window reloads after `prepare`. A window of a
-   repo not in this group still shows an earlier group: tell the user to close it.
+   editor: print `cd "<worktree>" && <launcher>`). A worktree already open from an earlier group is
+   not reopened: its window reloads after `prepare`. A window of a repo not in this group still shows
+   an earlier group: tell the user to close it.
 4. Tell the user: the group's diff is the **staged changes** in the IDE's git view (name the view if
    step 2 found it); ask anything, give a path, ask for an edit, or leave `<crn>` comments, save, and say
    "read the crn"; say OK to move on.
