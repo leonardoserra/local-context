@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.1.1 - 2026-11-10
+
+- Changed
+  - `CODE_REVIEW_MAPPING.md` now lists each group's files under the repo's name (e.g. `api:`, `web:`), in the header
+    table's order, and each `open:` command sits under a `# <repo>` comment. Before, the lists were labelled
+    `backend:` and `frontend:`, which did not fit a library, an engine or a repo holding both. `local-context-crn`
+    shows the same labels. Regenerate the map with `local-context-code-review-mapping` to get them.
+
 ## 1.1.0 - 2026-11-09
 
 - Changed
