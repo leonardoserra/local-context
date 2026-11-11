@@ -33,13 +33,18 @@ If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context
 per-project constraints (who runs tests, never push, approval before each change, commit style),
 **those win** over this file. Read them before step 3.
 
+Layout (§ Folder layout in `new`): flat by default; a feature may hold sub-feature folders when the
+user asked for them; a feature spanning repos has a folder of the same name in each repo, each
+scoped to its repo and pointing at the others by `path:line`.
+
 ## 1 — Pick the folder
 
 Project root: `git rev-parse --show-toplevel`, else cwd. `.local_context` may be a symlink (git
 worktrees) — resolve it, write through it.
 
 - **Exact name or path** in the arguments (`<feature_name>`, `@.local_context/<feature_name>`,
-  a different case or `-`/`_`, a unique prefix) → use it, say which folder matched.
+  a different case or `-`/`_`, a unique prefix, or a `<parent>/<sub_feature>` path) → use it, say
+  which folder matched.
 - **A phrase** (a description, not a folder name) → infer the best match from
   folder names (and, if names are not enough, the first lines of each `CURRENT.md`), then confirm
   with `AskUserQuestion` (or a plain question if the agent has no such tool): inferred folder first, labelled `(Recommended)`, plus the next closest.
@@ -61,7 +66,8 @@ Everything read is re-sent on every later turn, so load only what the work needs
    next open task(s), § Blocked on a decision, § Verification commands, § Do NOT do (YAGNI).
    `BUSINESS.md` in full, if it exists.
 3. If CURRENT/plan point at a sibling folder of the same feature in another repo (container repo
-   ↔ subrepo), read that one only when about to touch that repo.
+   ↔ subrepo), read that one only when about to touch that repo. In a sub-feature folder, read the
+   parent's `CURRENT.md` for the shared part; read only the lines a pointer (`path:line`) names.
 4. Quick drift check: `git log --oneline -10` and `git status --short` against § START HERE. If the
    plan says a task is next but a commit already did it, or a cited SHA does not exist
    (`git cat-file -t <sha>`), report it and ask whether to fix the record first or run
@@ -148,6 +154,9 @@ is complete — a truncated plan is lost history.
   client need) goes in `BUSINESS.md`, not CURRENT — create the file from `new`'s template if
   absent. A changed rule is replaced in place and its old wording moved to ARCHIVE verbatim. A pure
   technical session leaves it untouched.
+- **Pointers, not copies**: a fact that belongs to the parent feature or to another repo's folder
+  of the same feature is written there once and cited here as `<path>/CURRENT.md:<line>`. Moving
+  lines shifts the line numbers, so fix the pointers that cite them in the same session.
 - **ARCHIVE**: one dated entry for the session, prepended newest first, proving the old content
   is intact (the second command must print nothing; then `cp` the new file into place):
   `cat <entry.md> ARCHIVE.md > <scratch>/ARCHIVE.md`

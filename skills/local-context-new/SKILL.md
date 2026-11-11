@@ -27,6 +27,18 @@ can read one short file and act.
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules, those
 win over this table — read them first and follow them.
 
+## Folder layout
+
+- **Flat by default.** One folder per feature, directly under `.local_context/`.
+- **Nested on request.** When the user asks to create a feature inside another one (e.g. a feature
+  split into subtasks), create `.local_context/<parent>/<sub_feature>/` with its own files. The
+  parent's `CURRENT.md` keeps what all the subtasks share; each sub-folder keeps only its own part
+  and points at the parent for the rest. Never nest unasked.
+- **One feature across several repos.** When the work spans repos (e.g. a container repo and its
+  submodules), give each repo's folder the same `<feature_name>`. Each folder holds only its own
+  repo's scope. Write a fact once, where it belongs, and elsewhere point at it as
+  `<path>/CURRENT.md:<line>` instead of copying it, so it is found fast and not re-read n times.
+
 ## Steps
 
 1. **Find the project root.** `git rev-parse --show-toplevel`; if that fails, the current
@@ -40,6 +52,8 @@ win over this table — read them first and follow them.
      the sentence, and say which name you chose and why in one line.
    - The name comes only from the user's arguments. Names in this file are placeholders, never
      folders to look for.
+   - Asked to put it inside another feature → the folder is
+     `.local_context/<parent>/<feature_name>/` (§ Folder layout); the parent must exist.
    - If `.local_context/<feature_name>/` already exists, **stop** and ask: use it (then this skill
      does nothing — suggest `local-context-tidy`), or pick another name. Never overwrite.
 

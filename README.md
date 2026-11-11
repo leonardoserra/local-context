@@ -13,6 +13,10 @@ A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any 
 
 `.local_context/` is git-ignored automatically and never committed.
 
+Folders are flat, one per feature. Ask for a feature inside another one (e.g. a feature split into subtasks) and it is
+nested: the parent's `CURRENT.md` holds what the subtasks share. A feature spanning several repos gets a folder of the
+same name in each repo, each scoped to its repo and pointing at the others by `path:line` instead of copying them.
+
 ## Skills
 
 All skills are user-invoked only (the agent never triggers them on its own).
