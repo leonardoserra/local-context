@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.0 - 2026-11-11
+
+- Changed
+  - `local-context-crn` now explains each group before you read it. Below the group's file lists, it writes one
+    section per repo: what the group's changes do as the code runs (behaviour, flow, business rules), the files
+    involved and key spots as `path:line`. It checks this against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md` and
+    flags wrong patterns, broken or missed rules and surprising behaviour, so you can review from the explanation
+    and open the code only to verify.
+
 ## 1.2.0 - 2026-11-11
 
 - Changed

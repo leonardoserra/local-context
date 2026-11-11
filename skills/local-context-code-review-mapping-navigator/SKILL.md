@@ -1,6 +1,6 @@
 ---
 name: local-context-code-review-mapping-navigator
-description: Walks the user through a feature's CODE_REVIEW_MAPPING.md one group at a time, like a merge request review scoped to one functionality. Per group, opens the user's IDE on a throwaway review worktree per repo where only that group's changes show (staged), takes questions, edits and <crn> comments left in the code, then applies the review edits to the feature branch checkout. Run by the user as local-context-code-review-mapping-navigator <feature_name> [group number] [ide]; alias local-context-crn.
+description: Walks the user through a feature's CODE_REVIEW_MAPPING.md one group at a time, like a merge request review scoped to one functionality. Per group, explains per repo what the changes do and flags wrong patterns or business-rule mismatches, opens the user's IDE on a throwaway review worktree per repo where only that group's changes show (staged), takes questions, edits and <crn> comments left in the code, then applies the review edits to the feature branch checkout. Run by the user as local-context-code-review-mapping-navigator <feature_name> [group number] [ide]; alias local-context-crn.
 argument-hint: "<feature_name> [group number] [ide name]"
 disable-model-invocation: true
 ---
@@ -101,11 +101,17 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
    step 1 command).
 2. Print the group exactly as in the map (heading, `Read for:`, the `<repo>:` and `specs:` lists) and
    `n / total`.
-3. Per `repo<TAB>worktree` line, open the IDE: `<launcher> [new-window flag] "<worktree>"` (terminal
+3. Below that, per repo of the group, a `<repo>` section: what the group's changes do there as the code
+   runs (behaviour, flow, business rules enforced), then the files involved, key spots as `path:line`.
+   Write it from the group's diff (`git -C <worktree> diff --cached`) and the code around it, never
+   from the map alone. Check it against the feature folder's `BUSINESS.md` (if present) and the plan
+   tasks it implements (`IMPLEMENTATION_PLAN.md`); flag each wrong pattern, rule broken or missed, or
+   surprising behaviour with its `file:line`. The user reviews from this and opens code only to verify.
+4. Per `repo<TAB>worktree` line, open the IDE: `<launcher> [new-window flag] "<worktree>"` (terminal
    editor: print `cd "<worktree>" && <launcher>`). A worktree already open from an earlier group is
    not reopened: its window reloads after `prepare`. A window of a repo not in this group still shows
    an earlier group: tell the user to close it.
-4. Tell the user: the group's diff is the **staged changes** in the IDE's git view (name the view if
+5. Tell the user: the group's diff is the **staged changes** in the IDE's git view (name the view if
    step 2 found it); ask anything, give a path, ask for an edit, or leave `<crn>` comments, save, and say
    "read the crn"; say OK to move on.
 
