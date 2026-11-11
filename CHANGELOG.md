@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.0 - 2026-11-11
+
+- Changed
+  - `local-context-new` can now create a feature inside another one when you ask for it (e.g. a feature split into
+    subtasks): `.local_context/<parent>/<sub_feature>/`. The parent's `CURRENT.md` keeps what the subtasks share.
+    Folders stay flat unless you ask. `local-context-continue` accepts a `<parent>/<sub_feature>` path and reads the
+    parent's `CURRENT.md` for the shared part.
+  - A feature that spans several repos gets a folder of the same name in each repo, each holding only its own repo's
+    scope. A fact is written once and cited elsewhere as `<path>/CURRENT.md:<line>` instead of being copied.
+    `local-context-continue` keeps those pointers right when lines move.
+
 ## 1.1.1 - 2026-11-10
 
 - Changed
