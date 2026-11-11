@@ -102,11 +102,15 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
 2. Print the group exactly as in the map (heading, `Read for:`, the `<repo>:` and `specs:` lists) and
    `n / total`.
 3. Below that, per repo of the group, a `<repo>` section: what the group's changes do there as the code
-   runs (behaviour, flow, business rules enforced), then the files involved, key spots as `path:line`.
-   Write it from the group's diff (`git -C <worktree> diff --cached`) and the code around it, never
-   from the map alone. Check it against the feature folder's `BUSINESS.md` (if present) and the plan
-   tasks it implements (`IMPLEMENTATION_PLAN.md`); flag each wrong pattern, rule broken or missed, or
-   surprising behaviour with its `file:line`. The user reviews from this and opens code only to verify.
+   runs (behaviour, flow, business rules enforced), then the files involved, key spots as
+   `<repo>/path:line`: the path as the map writes it, from the project root, never the worktree's own;
+   lines as at Head. Write it from the group's diff (`git -C <worktree> diff --cached`) and the code
+   around it, never from the map alone. Check it against the feature folder's `BUSINESS.md` (if
+   present) and the plan tasks it implements (`IMPLEMENTATION_PLAN.md`); flag each wrong pattern, rule
+   broken or missed, or surprising behaviour with its `<repo>/path:line`. In an `Other / mechanical`
+   group, each `<repo>` section is one line per change: what changed and why (the lockfile follows the
+   Gemfile bump); flag only surprises (a dependency nobody asked for, a config value changed by hand, a
+   generated file out of sync with its source). The user reviews from this and opens code only to verify.
 4. Per `repo<TAB>worktree` line, open the IDE: `<launcher> [new-window flag] "<worktree>"` (terminal
    editor: print `cd "<worktree>" && <launcher>`). A worktree already open from an earlier group is
    not reopened: its window reloads after `prepare`. A window of a repo not in this group still shows
@@ -117,7 +121,7 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
 
 ## 4 — During the review of a group
 
-- **Questions**: answer from the code and cite `file:line`. The group's files: read the review worktree.
+- **Questions**: answer from the code and cite `<repo>/path:line`. The group's files: read the review worktree.
   Other files: `git -C <repo> show <Head>:<path>` (the user's checkout may be dirty or elsewhere).
 - **Edits** go in the review worktree, never in the user's checkout. A file outside the group:
   `crn.sh stage <map> <repo> <path>` first; else the worktree holds the merge-base version and the edit
@@ -135,7 +139,7 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
   3. Remove each handled comment: delete the lines from `<crn>` to `</crn>` when they hold nothing else;
      otherwise cut only the `<crn> … </crn>` span, and its comment marker if nothing is left after it.
      Never touch other comments.
-  4. Report per comment: `file:line` — what it asked → what was done.
+  4. Report per comment: `<repo>/path:line` — what it asked → what was done.
   5. `crn.sh crn <map>` again: only the comments left on purpose may remain.
 
 ## 5 — OK: apply and move on
