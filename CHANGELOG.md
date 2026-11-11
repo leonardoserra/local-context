@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.5.0 - 2026-11-11
+
+- Changed
+  - `local-context-crn` opens all of a group's worktrees in one IDE window (e.g. `code "<wt1>" "<wt2>"`). Before, it
+    opened one window per repo.
+  - Each group's explanation now ends with that IDE command in a `sh` block, so you can copy it and reopen the group.
+  - In the review worktrees, `local-context-crn` adds a short `XPLAIN: <explanation>` comment above each run of
+    functions, methods, classes or constants that share a domain concept. The notes exist only in the worktree:
+    `apply` strips them before copying your edits to your checkout, they never count as pending edits, and
+    `cleanup` deletes them with the worktree. A comment line you write as `XPLAIN: ...` during review is stripped too.
+  - The docs now say it outright: the `local-context-crn` alias means code-review-navigator, and the `<crn>` tag means
+    code-review-note.
+
 ## 1.4.0 - 2026-11-11
 
 - Changed
