@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0 - 2026-11-11
+
+- Changed
+  - `local-context-code-review-mapping` reviews lockfiles, generated files and config like any other change. When one
+    domain's mechanical change is too big to follow mixed with the rest, it gets its own group (e.g.
+    `Other / mechanical — dependencies`, `Other / mechanical — CI`). Before, everything mechanical went into a single
+    `Other / mechanical` group. These groups still come last.
+  - `local-context-crn` cites files as `<repo>/path:line`, the same paths the map lists, in its group explanation,
+    its answers and its `<crn>` report. Before, it could cite paths relative to the review worktree, which matched
+    neither the map nor your checkout.
+  - In an `Other / mechanical` group, `local-context-crn` explains each change in one line, what changed and why
+    (e.g. the lockfile follows the Gemfile bump). It flags only surprises: a dependency nobody asked for, a config
+    value changed by hand, a generated file out of sync with its source.
+
 ## 1.3.0 - 2026-11-11
 
 - Changed

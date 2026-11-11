@@ -119,14 +119,16 @@ Grouping rules:
   index) goes in the group it mainly serves. If it serves several, list it in each and flag it
   (step 6).
 - **Leftovers** — lockfiles, generated files, pure config, formatting-only edits, submodule
-  pointers — go in a final `Other / mechanical` group. Never drop a file.
+  pointers — go in a final `Other / mechanical` group, reviewed like the rest. A domain whose
+  mechanical change is too big to follow mixed with the others gets its own such group
+  (`Other / mechanical — dependencies`, `Other / mechanical — CI`). Never drop a file.
 
 **Order of groups**, for reading:
 
 1. Foundations: schema and migrations, shared data and infrastructure other groups depend on.
 2. The capabilities that build on them, each after the ones it depends on.
 3. Cross-cutting work: downloads and exports, configuration, docs.
-4. `Other / mechanical`, last.
+4. `Other / mechanical` group(s), last.
 
 **Order inside a group**: data up, from storage to screen. Backend: migration, model, query or
 service, controller, serializer, routes, jobs. Frontend: model, http mixin, store, component, view.
@@ -184,7 +186,7 @@ code "<root>/<other_repo>/path/to/file.vue"
   and its files from `specs:`. `<root>` is the absolute project root
   (`git rev-parse --show-toplevel`); quote every path. Skip deleted files; a repo left with no file
   gets no command.
-  `Other / mechanical` gets no `open:` block. The opener comes from the arguments:
+  `Other / mechanical` groups get no `open:` block. The opener comes from the arguments:
   - `code` (VS Code, default), `zed`, `cursor`: one command, all paths as arguments.
   - `finder` (macOS): `open -R "<path>" "<path>"` reveals the files in Finder.
   - `explorer` (Windows): Explorer takes one file per call, so chain

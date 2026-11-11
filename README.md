@@ -64,9 +64,11 @@ They work across a container repo and its submodules, e.g. a backend and a front
 ```
 
 Writes `.local_context/<feature>/CODE_REVIEW_MAPPING.md`: every file the feature's branches change, grouped by the
-capability it implements (each repo's files side by side under the repo name, specs with the code they test), in reading order,
-foundations first. Each group has a `Read for:` hint and one command per repo that opens all its files. A coverage
-check proves no changed file is left out. Run it again whenever the branches move; never edit the map by hand.
+capability it implements (each repo's files side by side under the repo name, specs with the code they test), in
+reading order, foundations first. Lockfiles, generated files and config are reviewed too, in a last `Other /
+mechanical` group, or several by domain (e.g. `Other / mechanical — dependencies`) when one is too big to follow
+mixed. Each group has a `Read for:` hint and one command per repo that opens all its files. A coverage check proves no
+changed file is left out. Run it again whenever the branches move; never edit the map by hand.
 
 ### 2. Review it group by group
 
@@ -83,9 +85,10 @@ check proves no changed file is left out. Run it again whenever the branches mov
 2. For each repo the group touches it prepares a review worktree under `~/.cache/local-context-crn/` and opens your
    IDE on it: two repos, two windows. Your own checkouts are not touched.
 3. Below the group's file lists it explains, per repo, what the group's changes do as the code runs (behaviour, flow,
-   business rules), with the files involved and key spots as `path:line`. It writes this from the diff and checks it
-   against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md`, flagging wrong patterns, broken or missed rules and surprising
-   behaviour. You review from the explanation and open the code only to verify.
+   business rules), with the files involved and key spots as `<repo>/path:line`, as the map writes them. It writes
+   this from the diff and checks it against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md`, flagging wrong patterns,
+   broken or missed rules and surprising behaviour. A mechanical group gets one line per change: what changed and why.
+   You review from the explanation and open the code only to verify.
 4. In the IDE's git view, the **staged changes** are exactly this group's part of the merge request. Read them like
    a small merge request.
 5. While you read:
