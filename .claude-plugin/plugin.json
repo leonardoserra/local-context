@@ -1,6 +1,6 @@
 {
   "name": "local-context",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md, optional BUSINESS.md and CODE_REVIEW_MAPPING.md. `local-context-new` creates it, `local-context-continue` resumes it, `local-context-start` does both, `local-context-tidy` cleans it, `local-context-business-questions` lists the decisions the business owes, `local-context-code-review-mapping` maps the changed files for review, `local-context-code-review-mapping-navigator` (alias `local-context-crn`) walks the map group by group in your IDE.",
   "author": {
     "name": "Leonardo Serra"

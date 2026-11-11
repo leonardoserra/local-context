@@ -36,7 +36,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
 | `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
-| `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: opens the IDE you name (it finds its launcher) on a throwaway worktree per repo where only that group's changes show. Answers questions, makes edits and handles `<crn> … </crn>` comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
+| `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, then opens the IDE you name (it finds its launcher) on a throwaway worktree per repo where only that group's changes show. Answers questions, makes edits and handles `<crn> … </crn>` comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
 
@@ -82,9 +82,13 @@ check proves no changed file is left out. Run it again whenever the branches mov
    you for the path). Terminal editors such as Neovim get a command to run yourself.
 2. For each repo the group touches it prepares a review worktree under `~/.cache/local-context-crn/` and opens your
    IDE on it: two repos, two windows. Your own checkouts are not touched.
-3. In the IDE's git view, the **staged changes** are exactly this group's part of the merge request. Read them like
+3. Below the group's file lists it explains, per repo, what the group's changes do as the code runs (behaviour, flow,
+   business rules), with the files involved and key spots as `path:line`. It writes this from the diff and checks it
+   against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md`, flagging wrong patterns, broken or missed rules and surprising
+   behaviour. You review from the explanation and open the code only to verify.
+4. In the IDE's git view, the **staged changes** are exactly this group's part of the merge request. Read them like
    a small merge request.
-4. While you read:
+5. While you read:
    - ask anything ("why is this query grouped before the join?"), or give a path;
    - ask for an edit, which is made in the review worktree;
    - or write comments for the agent in the code, in the file's comment syntax, save, and say "read the crn":
@@ -112,11 +116,11 @@ check proves no changed file is left out. Run it again whenever the branches mov
      The first and second are instructions, so the agent makes the change; the third is a question, answered in
      chat with its `file:line`. Each `<crn>` is done or answered, then removed. Only comments you add during the
      review count.
-5. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and it asks whether to
+6. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and it asks whether to
    open the next group. Nothing is ever committed or pushed for you. The group's heading in `CODE_REVIEW_MAPPING.md` gets
    ` ✅ reviewed`, so the next session (tomorrow, say) starts at the first group not yet reviewed. Regenerating
    the map clears the marks.
-6. After each group it asks whether to remove the review worktrees (it names their paths), e.g. when you stop
+7. After each group it asks whether to remove the review worktrees (it names their paths), e.g. when you stop
    for the day; the next group recreates them. After the last group it asks again if they are still there.
 
 ## Install
