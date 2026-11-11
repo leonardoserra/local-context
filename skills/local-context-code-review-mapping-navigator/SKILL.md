@@ -1,6 +1,6 @@
 ---
 name: local-context-code-review-mapping-navigator
-description: Walks the user through a feature's CODE_REVIEW_MAPPING.md one group at a time, like a merge request review scoped to one functionality. Per group, explains per repo what the changes do and flags wrong patterns or business-rule mismatches, opens the user's IDE on a throwaway review worktree per repo where only that group's changes show (staged), takes questions, edits and <crn> comments left in the code, then applies the review edits to the feature branch checkout. Run by the user as local-context-code-review-mapping-navigator <feature_name> [group number] [ide]; alias local-context-crn.
+description: Walks the user through a feature's CODE_REVIEW_MAPPING.md one group at a time, like a merge request review scoped to one functionality. Per group, explains per repo what the changes do and flags wrong patterns or business-rule mismatches, adds XPLAIN reading notes, opens the user's IDE once on the throwaway review worktrees of every repo of the group where only that group's changes show (staged) and prints that command, takes questions, edits and <crn> (code-review-note) comments left in the code, then applies the review edits to the feature branch checkout. Run by the user as local-context-code-review-mapping-navigator <feature_name> [group number] [ide]; alias local-context-crn (crn = code-review-navigator).
 argument-hint: "<feature_name> [group number] [ide name]"
 disable-model-invocation: true
 ---
@@ -9,10 +9,12 @@ disable-model-invocation: true
 
 `CODE_REVIEW_MAPPING.md` (written by `local-context-code-review-mapping`) splits a large merge request
 into groups by functionality. This skill turns each group into a small merge request review: the user's
-IDE opens on a **review worktree** per repo where only the group's files differ, so the IDE's changes view
-shows exactly that group's diff. The user reads, asks, edits or leaves `<crn>` comments; the agent answers
-and edits there; on the user's OK the edits move to the user's checkout of the feature branch and the next
-group opens. Alias: `local-context-crn` (code review navigator). Typical calls:
+IDE opens, in one window, on a **review worktree** per repo where only the group's files differ, so the
+IDE's changes view shows exactly that group's diff. The user reads, asks, edits or leaves `<crn>` comments;
+the agent answers and edits there; on the user's OK the edits move to the user's checkout of the feature
+branch and the next group opens. Alias: `local-context-crn`. Two names share the letters: the alias
+`local-context-crn` = **code-review-navigator** (this skill); the `<crn>` tag = **code-review-note** (a
+comment the user leaves in the code, step 4). Typical calls:
 
 ```
 local-context-code-review-mapping-navigator <feature_name>
@@ -44,7 +46,9 @@ the map's head SHA. In it:
 
 - **staged changes** = what the branch changed in this group (the merge request diff);
 - **review edits** = anything that differs from that starting state (`<worktree>.tree`), staged or not,
-  plus new files. The user's checkouts are not touched until `apply`.
+  plus new files. The user's checkouts are not touched until `apply`;
+- **XPLAIN notes** (step 3) are never review edits: `status`, `prepare` and `cleanup` do not count them as
+  pending, `apply` strips them before copying the edits, and the next `prepare` or `cleanup` deletes them.
 
 | Command | Does | Output, exit codes |
 |---|---|---|
@@ -52,7 +56,7 @@ the map's head SHA. In it:
 | `reviewed <map> <n>` | marks group `n` reviewed in its map heading (idempotent) | — |
 | `prepare <map> <n>` | resets the worktrees for group `n` | `repo<TAB>worktree` per repo of the group; exit 2 = review edits pending, nothing changed |
 | `stage <map> <repo> <path>...` | brings the head version of a file outside the group in, before editing it | exit 2 = the file is already edited, or the repo has no review worktree yet |
-| `crn <map>` | `<crn>` comments the review edits added | `<file>:<line>:<text>`; `<crn>` already in the branch's code is never listed |
+| `crn <map>` | `<crn>` (code-review-note) comments the review edits added | `<file>:<line>:<text>`; `<crn>` already in the branch's code is never listed |
 | `status <map>` | pending review edits | per worktree a `repo<TAB>worktree` line, then one line per edited file; header lines only = nothing pending |
 | `apply <map>` | review edits → each repo's checkout, then drops them from the worktrees | `<repo>: <file>` per applied file; exit 2 = a `<crn>` is left or a checkout is not on the map's branch, nothing applied; exit 3 = that repo's patch did not apply (see step 5) |
 | `cleanup <map>` | removes the worktrees | exit 2 = review edits pending |
@@ -82,9 +86,9 @@ Unless the arguments named it, ask in a plain question which IDE or editor the u
 offer a list. Then resolve its command-line launcher:
 
 1. `command -v <name>` for the likely command names (the IDE's name, lowercase).
-2. Not found or unsure → search the web for how that IDE opens a folder from the command line and in a
-   new window (launcher name, usual install path, e.g. inside its macOS app bundle), then check that path
-   exists.
+2. Not found or unsure → search the web for how that IDE opens several folders from the command line in
+   one new window (launcher name, usual install path, e.g. inside its macOS app bundle), then check that
+   path exists.
 3. Still nothing → ask the user for the binary path or the command they use.
 
 A terminal editor (vim, Neovim, Emacs in a terminal, …) cannot be launched by the agent: it needs the
@@ -111,13 +115,23 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
    group, each `<repo>` section is one line per change: what changed and why (the lockfile follows the
    Gemfile bump); flag only surprises (a dependency nobody asked for, a config value changed by hand, a
    generated file out of sync with its source). The user reviews from this and opens code only to verify.
-4. Per `repo<TAB>worktree` line, open the IDE: `<launcher> [new-window flag] "<worktree>"` (terminal
-   editor: print `cd "<worktree>" && <launcher>`). A worktree already open from an earlier group is
-   not reopened: its window reloads after `prepare`. A window of a repo not in this group still shows
-   an earlier group: tell the user to close it.
-5. Tell the user: the group's diff is the **staged changes** in the IDE's git view (name the view if
-   step 2 found it); ask anything, give a path, ask for an edit, or leave `<crn>` comments, save, and say
-   "read the crn"; say OK to move on.
+4. **XPLAIN notes**, so the code reads easier. In each worktree, in the group's changed code only, above
+   each run of functions, methods, classes or constants serving the same domain concept, add one comment
+   line of its own, indented like the code, in the file's comment syntax: `XPLAIN: <explanation>`
+   (`# XPLAIN: …` Ruby, YAML, shell; `// XPLAIN: …` TS/JS; `<!-- XPLAIN: … -->` HTML, Vue template;
+   `/* XPLAIN: … */` CSS/SCSS; `-- XPLAIN: …` SQL). Very concise, conceptual: what the block is for. Be more
+   specific only where the code is not explicit or is hard to follow. Then `git -C <worktree> add -u`: the
+   notes show in the staged diff, and the unstaged view keeps only review edits. The notes live only in the
+   review worktree: never commit them or copy them elsewhere; `crn.sh` keeps them out of `apply` and drops
+   them with the worktree (see "The review worktree").
+5. One IDE command for the whole group, every worktree `prepare` printed, in its order:
+   `<launcher> [new-window flag] "<worktree 1>" "<worktree 2>" …` (e.g. `code "<worktree 1>"
+   "<worktree 2>"`). Print it below the explanation in a `sh` block, so the user can copy it, then run it
+   (terminal editor: print only). The previous group's window holds exactly these worktrees → do not run
+   it: that window reloads after `prepare`. Else tell the user to close the earlier group's window.
+6. Tell the user: the group's diff is the **staged changes** in the IDE's git view (name the view if
+   step 2 found it); `XPLAIN:` lines are reading notes, never applied; ask anything, give a path, ask for
+   an edit, or leave `<crn>` comments, save, and say "read the crn"; say OK to move on.
 
 ## 4 — During the review of a group
 
@@ -128,7 +142,8 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
   would revert the branch. Exit 2 because the repo has no review worktree in this group → say so, and
   make the edit when that repo's group opens, or in the user's checkout only if the user says so. New
   files: create them in the worktree.
-- **`<crn>` comments.** The user writes them in the review worktree, in the file's own comment syntax:
+- **`<crn>` comments** (crn = code-review-note, not the navigator). The user writes them in the review
+  worktree, in the file's own comment syntax:
   `# <crn> … </crn>` (Ruby, YAML, shell), `// <crn> … </crn>` (TS/JS), `<!-- <crn> … </crn> -->` (HTML,
   Vue template), `/* <crn> … </crn> */` (CSS/SCSS), `-- <crn> … </crn>` (SQL). One may span several comment
   lines, or trail a line of code. On "read the crn" (or similar):
@@ -147,7 +162,8 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
 On the user's OK for the group:
 
 1. `crn.sh status <map>`. Header lines only → `crn.sh reviewed <map> <n>`, then item 5 below.
-2. Show the pending edits (`git -C <worktree> diff --stat "$(cat <worktree>.tree)"`, new files listed).
+2. Show the pending edits (`git -C <worktree> diff --stat -I'XPLAIN: ' "$(cat <worktree>.tree)"`, new
+   files listed).
    If the user's checkout has uncommitted changes in those files
    (`git -C <checkout> status --porcelain -- <files>`), say so and ask: go on, or let the user commit or
    stash first.

@@ -6,13 +6,16 @@
 #   crn.sh prepare <map> <group>          per repo of the group: review worktree at the mapped merge base, the
 #                                         group's files checked out (staged) from the mapped head; prints repo<TAB>worktree
 #   crn.sh stage   <map> <repo> <path>... bring the mapped head version of files outside the group in, before editing them
-#   crn.sh crn     <map>                  <crn> comments in the review edits, file:line:text
+#   crn.sh crn     <map>                  <crn> (code-review-note) comments in the review edits, file:line:text
 #   crn.sh status  <map>                  per review worktree: repo<TAB>worktree, then one line per pending review edit
-#   crn.sh apply   <map>                  review edits -> each repo's checkout, then drops them from the worktrees
-#   crn.sh cleanup <map>                  removes the review worktrees
+#   crn.sh apply   <map>                  review edits -> each repo's checkout (XPLAIN notes stripped), then drops them
+#                                         from the worktrees
+#   crn.sh cleanup <map>                  removes the review worktrees, XPLAIN notes and all
 #
 # Baseline = the tree written by prepare (<worktree>.tree). Review edits = worktree + untracked files vs baseline,
-# staged or not. Exit 2 = refused, nothing changed; exit 3 = a patch did not apply, kept next to its worktree.
+# staged or not. XPLAIN notes (a comment line of its own: marker, space, "XPLAIN: ") are the agent's reading aids:
+# never review edits, never applied. Exit 2 = refused, nothing changed; exit 3 = a patch did not apply, kept next
+# to its worktree.
 set -euo pipefail
 
 command=${1:?command}
@@ -39,8 +42,10 @@ group_paths() { awk -v n="$1" '/^### /{i++} i==n && /^  - /{sub(/^  - /,""); pri
 
 existing_worktrees() { local name; for name in $(repo_names); do [ -f "$worktrees_root/$name.tree" ] && echo "$name"; done; true; }
 
+xplain='^[[:space:]]*[^[:alnum:][:space:]]+ XPLAIN: '
+
 pending_edits() {
-  git -C "$1" diff --name-only "$(cat "$1.tree")"
+  git -C "$1" diff --numstat --no-renames -I"$xplain" "$(cat "$1.tree")" | cut -f3-
   git -C "$1" ls-files -o --exclude-standard
 }
 
@@ -146,6 +151,15 @@ case $command in
     for name in $to_apply; do
       worktree=$worktrees_root/$name
       target=$(repo_dir "$name")
+      # drop the XPLAIN lines added since the baseline, bottom up per file so line numbers hold
+      git -C "$worktree" diff -U0 --no-prefix "$(cat "$worktree.tree")" | awk -v re="$xplain" '
+        /^\+\+\+ / {file=substr($0, 5); next}
+        /^@@/ {split($3, start, ","); line=substr(start[1], 2); next}
+        /^\+/ {if (substr($0, 2) ~ re) print line "\t" file; line++}' | sort -t"$(printf '\t')" -k2,2 -k1,1nr |
+        while IFS="$(printf '\t')" read -r line file; do
+          awk -v n="$line" 'NR != n' "$worktree/$file" > "$worktree.strip" && cat "$worktree.strip" > "$worktree/$file"
+        done
+      rm -f "$worktree.strip"
       git -C "$worktree" diff --binary "$(cat "$worktree.tree")" > "$worktree.patch"
       git -C "$target" apply "$worktree.patch" || git -C "$target" apply --3way "$worktree.patch" \
         || { echo "$name: not applied, review edits kept, patch kept: $worktree.patch" >&2; exit 3; }

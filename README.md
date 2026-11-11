@@ -36,7 +36,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
 | `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
-| `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, then opens the IDE you name (it finds its launcher) on a throwaway worktree per repo where only that group's changes show. Answers questions, makes edits and handles `<crn> … </crn>` comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
+| `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `XPLAIN:` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
 
@@ -78,23 +78,29 @@ changed file is left out. Run it again whenever the branches move; never edit th
 /local-context:local-context-crn <feature> 2 zed      # name the IDE up front
 ```
 
-`local-context-crn` is the short alias of `local-context-code-review-mapping-navigator`.
+`local-context-crn` is the short alias of `local-context-code-review-mapping-navigator` (crn = code-review-navigator).
+The `<crn>` tag you write in the code (step 5 below) is a different thing: crn = code-review-note.
 
 1. It asks once which IDE you use and finds its command-line launcher (on `PATH`, else from the web, else it asks
    you for the path). Terminal editors such as Neovim get a command to run yourself.
-2. For each repo the group touches it prepares a review worktree under `~/.cache/local-context-crn/` and opens your
-   IDE on it: two repos, two windows. Your own checkouts are not touched.
+2. For each repo the group touches it prepares a review worktree under `~/.cache/local-context-crn/`, and opens all of
+   them in one IDE window, e.g. `code "<worktree of repo 1>" "<worktree of repo 2>"`. It prints that command below the
+   group's explanation, so you can run it again yourself. Your own checkouts are not touched.
 3. Below the group's file lists it explains, per repo, what the group's changes do as the code runs (behaviour, flow,
    business rules), with the files involved and key spots as `<repo>/path:line`, as the map writes them. It writes
    this from the diff and checks it against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md`, flagging wrong patterns,
    broken or missed rules and surprising behaviour. A mechanical group gets one line per change: what changed and why.
-   You review from the explanation and open the code only to verify.
+   You review from the explanation and open the code only to verify. In the worktrees, a one-line `XPLAIN: …` comment
+   sits above each block of functions, classes or constants that share a domain concept, saying what it is for.
+   These notes exist only in the review worktree: they are never applied to your checkout or committed, and they go
+   away with the worktree.
 4. In the IDE's git view, the **staged changes** are exactly this group's part of the merge request. Read them like
    a small merge request.
 5. While you read:
    - ask anything ("why is this query grouped before the join?"), or give a path;
    - ask for an edit, which is made in the review worktree;
-   - or write comments for the agent in the code, in the file's comment syntax, save, and say "read the crn":
+   - or write `<crn>` (code-review-note) comments for the agent in the code, in the file's comment syntax, save, and
+     say "read the crn":
 
      ```rust
      // <crn> rename to OrderStatus, "State" clashes with axum::extract::State </crn>
