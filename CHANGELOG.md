@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 2.0.0 - 2026-11-13
+
+- Changed
+  - The code review map is now `.local_context/<feature>/CRM.md`. Before, it was `CODE_REVIEW_MAPPING.md`. Running
+    `local-context-code-review-mapping` again writes `CRM.md` and deletes the old file. Until then, the navigator stops
+    with "no map: …CRM.md, only the pre-2.0.0 …/CODE_REVIEW_MAPPING.md: regenerate it
+    (local-context-code-review-mapping) or rename it to CRM.md".
+  - `local-context-code-review-mapping-navigator` is now `local-context-code-review-navigator`, so the `crn` alias
+    matches its initials. The alias `local-context-crn` is unchanged.
+  - Reading notes in review worktrees are now `<xplain>…</xplain>` comments that can span several lines (e.g.
+    `# <xplain>` … `# </xplain>`). Before, each note was a single `XPLAIN: ...` line. `apply` still strips them, and
+    notes alone still never count as pending edits. A note with no `</xplain>` is treated as a review edit.
+  - Review worktrees left from 1.x still hold old `XPLAIN:` lines, and these now count as review edits. Discard them,
+    or delete those lines before applying.
+
 ## 1.6.0 - 2026-11-13
 
 - Changed

@@ -1,6 +1,6 @@
 ---
 name: local-context-code-review-mapping
-description: For one feature in .local_context/<feature_name>/, write CODE_REVIEW_MAPPING.md — a reading map of every file the feature's branches change, grouped by functionality with each repo's files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Maps, never reviews. Run by the user as local-context-code-review-mapping [feature_name | free text].
+description: For one feature in .local_context/<feature_name>/, write CRM.md — a reading map of every file the feature's branches change, grouped by functionality with each repo's files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Maps, never reviews. Run by the user as local-context-code-review-mapping [feature_name | free text].
 argument-hint: "[feature_name] or free text naming the feature (optionally branches, base, repos, opener: code | zed | finder | explorer)"
 disable-model-invocation: true
 ---
@@ -23,7 +23,7 @@ local-context-code-review-mapping <feature_name> — open with zed
 `<feature_name>` and `<branch_name>` are placeholders. The folder comes only from the user's
 arguments (step 1); never look for anything named in these examples.
 
-Output: `.local_context/<feature_name>/CODE_REVIEW_MAPPING.md`, an optional file of the folder
+Output: `.local_context/<feature_name>/CRM.md`, an optional file of the folder
 contract. It is **derived**: it mirrors the branches as they are now, is regenerated from scratch
 on every run, and is never edited by hand. The skill does not touch `CURRENT.md`,
 `IMPLEMENTATION_PLAN.md`, `ARCHIVE.md` or `BUSINESS.md`.
@@ -120,7 +120,7 @@ Grouping rules:
   files, specs and `open:` block. Keep one group when the files form a single idea that only makes
   sense read together; never split by layer or by count alone. Name subgroups
   `### <functionality name> / <idea> — <purpose, one line>`, as plain `###` groups next to each
-  other: `local-context-code-review-mapping-navigator` counts every `###` heading as one group,
+  other: `local-context-code-review-navigator` counts every `###` heading as one group,
   and a `####` heading would merge its files into the group above.
 - **Specs sit with the code they test**, in the group's own `specs:` list, never in a test group.
 - **A shared file** that several capabilities touch (a routes file, a model registry, a store
@@ -144,9 +144,10 @@ service, controller, serializer, routes, jobs. Frontend: model, http mixin, stor
 
 ## 5 — Write the map
 
-Write `.local_context/<feature_name>/CODE_REVIEW_MAPPING.md` (the root-level folder of the
+Write `.local_context/<feature_name>/CRM.md` (the root-level folder of the
 feature; one map covers every repo). If the file exists, replace it whole: it is derived, and the
-header SHAs show when it went stale.
+header SHAs show when it went stale. A `CODE_REVIEW_MAPPING.md` in the folder is this map under its
+name before 2.0.0: once `CRM.md` is written, delete it and say so.
 
 ````markdown
 # <feature_name> — code review mapping
@@ -185,8 +186,8 @@ code "<root>/<other_repo>/path/to/file.vue"
 
 - `<repo>` in the table is the repo's path from the project root (the first segment of its file paths);
   the root repo itself is its folder name (`basename` of the project root).
-  `local-context-code-review-mapping-navigator` reads the table this way.
-- `local-context-code-review-mapping-navigator` appends ` ✅ reviewed` to a group's heading once the
+  `local-context-code-review-navigator` reads the table this way.
+- `local-context-code-review-navigator` appends ` ✅ reviewed` to a group's heading once the
   user approves it. Regenerating the map drops these marks: the branches moved, so review again.
 - List a group's files per repo under `<repo>:`, with `<repo>` exactly as in the table, in table
   order. Never use a role label (`backend:`, `frontend:`, `<repo> (backend):`). One list per repo,

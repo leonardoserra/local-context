@@ -27,7 +27,7 @@ The folder contract is the one `new` writes:
 | `IMPLEMENTATION_PLAN.md` | § START HERE, numbered § Tasks (Repo / Depends on / Anchors / **Done when**), § Blocked on a decision, § Verification commands, § Do NOT do (YAGNI) | the work list — follow it in order |
 | `ARCHIVE.md` | dated history, newest first, append-only | not read unless the user asks "why"; one new entry per session, prepended |
 | `BUSINESS.md` *(optional)* | the feature's business rules, no technical ones | read in full when present; the work must respect it; created (template in `new`) when the first business rule is settled |
-| `CODE_REVIEW_MAPPING.md` *(optional)* | a reading map of the changed files, derived from the branches | not read and never edited here; `local-context-code-review-mapping` regenerates it |
+| `CRM.md` *(optional)* | a reading map of the changed files, derived from the branches | not read and never edited here; `local-context-code-review-mapping` regenerates it |
 
 If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules or
 per-project constraints (who runs tests, never push, approval before each change, commit style),

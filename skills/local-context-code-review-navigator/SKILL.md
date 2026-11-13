@@ -1,13 +1,13 @@
 ---
-name: local-context-code-review-mapping-navigator
-description: Walks the user through a feature's CODE_REVIEW_MAPPING.md one group at a time, like a merge request review scoped to one functionality. Per group, explains per repo what the changes do and flags wrong patterns or business-rule mismatches, adds XPLAIN reading notes, opens the user's IDE once on the throwaway review worktrees of every repo of the group where only that group's changes show (staged) and prints that command, takes questions, edits and <crn> (code-review-note) comments left in the code, then applies the review edits to the feature branch checkout. Run by the user as local-context-code-review-mapping-navigator <feature_name> [group number] [ide]; alias local-context-crn (crn = code-review-navigator).
+name: local-context-code-review-navigator
+description: Walks the user through a feature's CRM.md one group at a time, like a merge request review scoped to one functionality. Per group, explains per repo what the changes do and flags wrong patterns or business-rule mismatches, adds <xplain> reading notes, opens the user's IDE once on the throwaway review worktrees of every repo of the group where only that group's changes show (staged) and prints that command, takes questions, edits and <crn> (code-review-note) comments left in the code, then applies the review edits to the feature branch checkout. Run by the user as local-context-code-review-navigator <feature_name> [group number] [ide]; alias local-context-crn (crn = code-review-navigator).
 argument-hint: "<feature_name> [group number] [ide name]"
 disable-model-invocation: true
 ---
 
-# local-context-code-review-mapping-navigator
+# local-context-code-review-navigator
 
-`CODE_REVIEW_MAPPING.md` (written by `local-context-code-review-mapping`) splits a large merge request
+`CRM.md` (written by `local-context-code-review-mapping`) splits a large merge request
 into groups by functionality. This skill turns each group into a small merge request review: the user's
 IDE opens, in one window, on a **review worktree** per repo where only the group's files differ, so the
 IDE's changes view shows exactly that group's diff. The user reads, asks, edits or leaves `<crn>` comments;
@@ -17,7 +17,7 @@ branch and the next group opens. Alias: `local-context-crn`. Two names share the
 comment the user leaves in the code, step 4). Typical calls:
 
 ```
-local-context-code-review-mapping-navigator <feature_name>
+local-context-code-review-navigator <feature_name>
 local-context-crn <feature_name> 4
 local-context-crn <feature_name> 2 <ide_name>
 ```
@@ -30,14 +30,14 @@ per-project constraints, **those win** over this file. Read them before step 1.
 
 Never commit, push or stash, in a review worktree or in the user's checkouts, unless the user explicitly
 says so. Never commit or push `.local_context/`. The only `.local_context/` edit this skill makes is the
-`✅ reviewed` mark on a group heading in `CODE_REVIEW_MAPPING.md` (`crn.sh reviewed`).
+`✅ reviewed` mark on a group heading in `CRM.md` (`crn.sh reviewed`).
 
 ## The review worktree
 
-`<skill_dir>` = the folder holding this SKILL.md (`local-context-code-review-mapping-navigator/`), also when
+`<skill_dir>` = the folder holding this SKILL.md (`local-context-code-review-navigator/`), also when
 the skill runs through the `local-context-crn` alias. Run the script from the project root
 (`git rev-parse --show-toplevel`) as `bash <skill_dir>/scripts/crn.sh <command> <map> …`, with `<map>` =
-`<project root>/.local_context/<feature_name>/CODE_REVIEW_MAPPING.md`, not resolved through a symlink.
+`<project root>/.local_context/<feature_name>/CRM.md`, not resolved through a symlink.
 
 Each repo of a group gets one detached worktree, created the first time a group touches that repo and
 reused for later groups, at `~/.cache/local-context-crn/<project>/<feature_name>/<repo>` (override with
@@ -47,8 +47,12 @@ the map's head SHA. In it:
 - **staged changes** = what the branch changed in this group (the merge request diff);
 - **review edits** = anything that differs from that starting state (`<worktree>.tree`), staged or not,
   plus new files. The user's checkouts are not touched until `apply`;
-- **XPLAIN notes** (step 3) are never review edits: `status`, `prepare` and `cleanup` do not count them as
+- **xplain notes** (step 3) are never review edits: `status`, `prepare` and `cleanup` do not count them as
   pending, `apply` strips them before copying the edits, and the next `prepare` or `cleanup` deletes them.
+  `crn.sh` knows a note only by its lines added since `<worktree>.tree`: from a line whose first non-blank
+  text is a comment marker, a space and `<xplain>`, to the first line holding `</xplain>`, both included.
+  Any such block counts, also one the user writes. A block with no `</xplain>` in its run of added lines
+  is not a note: it counts as a review edit and is applied.
 
 | Command | Does | Output, exit codes |
 |---|---|---|
@@ -69,8 +73,10 @@ the map's head SHA. In it:
   matched; a phrase → infer the best match, then confirm with `AskUserQuestion` (or a plain question if
   the agent has no such tool), inferred folder first, labelled `(Recommended)`; no argument or no match →
   list the folders, most recently modified first, and ask. No `.local_context/` at all → say so and stop.
-- No `CODE_REVIEW_MAPPING.md` in the folder → tell the user to run
-  `local-context-code-review-mapping <feature_name>` first, and stop.
+- No `CRM.md` in the folder → tell the user to run
+  `local-context-code-review-mapping <feature_name>` first, and stop. A `CODE_REVIEW_MAPPING.md` there
+  instead is the same map under its name before 2.0.0: say so, and offer to regenerate it (recommended)
+  or rename it to `CRM.md`.
 - Stale map: per repo in the header table, after `git -C <repo> fetch origin`, compare
   `git -C <repo> rev-parse origin/<branch>` with `git -C <repo> rev-parse <Head>` (full SHAs: the header
   holds short ones). Different → the branch moved since the map was written: ask whether to regenerate the
@@ -115,12 +121,23 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
    group, each `<repo>` section is one line per change: what changed and why (the lockfile follows the
    Gemfile bump); flag only surprises (a dependency nobody asked for, a config value changed by hand, a
    generated file out of sync with its source). The user reviews from this and opens code only to verify.
-4. **XPLAIN notes**, so the code reads easier. In each worktree, in the group's changed code only, above
-   each run of functions, methods, classes or constants serving the same domain concept, add one comment
-   line of its own, indented like the code, in the file's comment syntax: `XPLAIN: <explanation>`
-   (`# XPLAIN: …` Ruby, YAML, shell; `// XPLAIN: …` TS/JS; `<!-- XPLAIN: … -->` HTML, Vue template;
-   `/* XPLAIN: … */` CSS/SCSS; `-- XPLAIN: …` SQL). Very concise, conceptual: what the block is for. Be more
-   specific only where the code is not explicit or is hard to follow. Then `git -C <worktree> add -u`: the
+4. **xplain notes**, so the code reads easier. In each worktree, in the group's changed code only, above
+   each run of functions, methods, classes or constants serving the same domain concept, add an
+   `<xplain> … </xplain>` comment on lines of its own, indented like the code, in the file's comment
+   syntax. One line when it fits; else span lines, ending the last with `</xplain>`:
+   - line comments: every line starts with the marker; the first line's first text is marker, space,
+     `<xplain>`: `# <xplain> … </xplain>` (Ruby, YAML, shell), `// <xplain> … </xplain>` (TS/JS),
+     `-- <xplain> … </xplain>` (SQL); on several lines:
+     ```
+     # <xplain> what the block is for,
+     # more when the code is hard to follow </xplain>
+     ```
+   - block comments: one comment, `<xplain>` right after its opener, its closer on the `</xplain>` line:
+     `<!-- <xplain> … </xplain> -->` (HTML, Vue template), `/* <xplain> … </xplain> */` (CSS/SCSS).
+   Nothing else on these lines: no code before the marker, nothing after `</xplain>` but the block
+   comment's closer. `crn.sh` strips exactly these lines (see "The review worktree"). Very concise,
+   conceptual: what the block is for. Be more specific only where the code is not explicit or is hard
+   to follow. Then `git -C <worktree> add -u`: the
    notes show in the staged diff, and the unstaged view keeps only review edits. The notes live only in the
    review worktree: never commit them or copy them elsewhere; `crn.sh` keeps them out of `apply` and drops
    them with the worktree (see "The review worktree").
@@ -130,7 +147,8 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
    (terminal editor: print only). The previous group's window holds exactly these worktrees → do not run
    it: that window reloads after `prepare`. Else tell the user to close the earlier group's window.
 6. Tell the user: the group's diff is the **staged changes** in the IDE's git view (name the view if
-   step 2 found it); `XPLAIN:` lines are reading notes, never applied; ask anything, give a path, ask for
+   step 2 found it); `<xplain>` comments are reading notes, never applied (one the user writes is
+   stripped too); ask anything, give a path, ask for
    an edit, or leave `<crn>` comments, save, and say "read the crn"; say OK to move on.
 
 ## 4 — During the review of a group
@@ -162,8 +180,7 @@ skipped. All marked → say so and ask: review again from group 1, or finish (st
 On the user's OK for the group:
 
 1. `crn.sh status <map>`. Header lines only → `crn.sh reviewed <map> <n>`, then item 5 below.
-2. Show the pending edits (`git -C <worktree> diff --stat -I'XPLAIN: ' "$(cat <worktree>.tree)"`, new
-   files listed).
+2. Show the pending edits: the files `status` listed, per repo.
    If the user's checkout has uncommitted changes in those files
    (`git -C <checkout> status --porcelain -- <files>`), say so and ask: go on, or let the user commit or
    stash first.
