@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.6.0 - 2026-11-13
+
+- Changed
+  - `local-context-code-review-mapping` splits a big group (around 10 files in one repo) into subgroups when its files
+    hold ideas a reviewer can read apart (e.g. `Report templates / list query` and `Report templates / CSV export`).
+    Each subgroup has its own files, specs and `open:` command, and sits next to its siblings. Files that form one idea
+    stay one group. Before, a capability was always one group, however many files it held.
+
 ## 1.5.0 - 2026-11-11
 
 - Changed

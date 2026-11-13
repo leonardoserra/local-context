@@ -65,9 +65,10 @@ They work across a container repo and its submodules, e.g. a backend and a front
 
 Writes `.local_context/<feature>/CODE_REVIEW_MAPPING.md`: every file the feature's branches change, grouped by the
 capability it implements (each repo's files side by side under the repo name, specs with the code they test), in
-reading order, foundations first. Lockfiles, generated files and config are reviewed too, in a last `Other /
-mechanical` group, or several by domain (e.g. `Other / mechanical — dependencies`) when one is too big to follow
-mixed. Each group has a `Read for:` hint and one command per repo that opens all its files. A coverage check proves no
+reading order, foundations first. A group with many files (around 10 in one repo) is split into subgroups when its
+files hold ideas that read separately (e.g. `Report templates / CSV export`); one idea stays one group. Lockfiles,
+generated files and config are reviewed too, in a last `Other / mechanical` group, or several by domain (e.g.
+`Other / mechanical — dependencies`) when one is too big to follow mixed. Each group has a `Read for:` hint and one command per repo that opens all its files. A coverage check proves no
 changed file is left out. Run it again whenever the branches move; never edit the map by hand.
 
 ### 2. Review it group by group

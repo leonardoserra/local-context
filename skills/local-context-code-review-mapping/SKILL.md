@@ -114,6 +114,14 @@ Grouping rules:
   files (models, http mixins, store, components, views) that implement the same capability.
   `models/` or `controllers/` is never a group.
 - **A group may touch one repo only**, e.g. a backend-only import job.
+- **Split a group that holds ideas readable apart.** Around 10 files in one repo is the signal
+  to look. If they hold parts a reviewer can read and verify separately (the list query and the
+  CSV export, the form and the permission check), make one subgroup per idea, each with its own
+  files, specs and `open:` block. Keep one group when the files form a single idea that only makes
+  sense read together; never split by layer or by count alone. Name subgroups
+  `### <functionality name> / <idea> — <purpose, one line>`, as plain `###` groups next to each
+  other: `local-context-code-review-mapping-navigator` counts every `###` heading as one group,
+  and a `####` heading would merge its files into the group above.
 - **Specs sit with the code they test**, in the group's own `specs:` list, never in a test group.
 - **A shared file** that several capabilities touch (a routes file, a model registry, a store
   index) goes in the group it mainly serves. If it serves several, list it in each and flag it
@@ -126,7 +134,8 @@ Grouping rules:
 **Order of groups**, for reading:
 
 1. Foundations: schema and migrations, shared data and infrastructure other groups depend on.
-2. The capabilities that build on them, each after the ones it depends on.
+2. The capabilities that build on them, each after the ones it depends on; a capability's
+   subgroups together, in the same order.
 3. Cross-cutting work: downloads and exports, configuration, docs.
 4. `Other / mechanical` group(s), last.
 
