@@ -8,8 +8,8 @@
     {
       "name": "local-context",
       "source": "./",
-      "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md, optional BUSINESS.md and CODE_REVIEW_MAPPING.md.",
-      "version": "1.6.0",
+      "description": "Per-feature working memory in .local_context/<feature>/ — CURRENT.md, IMPLEMENTATION_PLAN.md, ARCHIVE.md, optional BUSINESS.md and CRM.md.",
+      "version": "2.0.0",
       "license": "MIT"
     }
   ]

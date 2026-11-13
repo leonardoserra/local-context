@@ -9,7 +9,7 @@ A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any 
 | `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks with anchors and a **Done when** line, verification commands, a "Do NOT do (YAGNI)" table |
 | `ARCHIVE.md` | dated history, newest first, append-only |
 | `BUSINESS.md` *(optional)* | the feature's business rules only (scope, who gets/sees what, data, timing), whoever decided them; not created for pure technical work such as a bug fix |
-| `CODE_REVIEW_MAPPING.md` *(optional)* | a reading map of the feature's changed files, grouped by functionality with each repo's files side by side; derived from the branches and regenerated, never edited by hand |
+| `CRM.md` *(optional)* | the code review mapping: a reading map of the feature's changed files, grouped by functionality with each repo's files side by side; derived from the branches and regenerated, never edited by hand |
 
 `.local_context/` is git-ignored automatically and never committed.
 
@@ -35,8 +35,8 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
-| `local-context-code-review-mapping [feature \| free text]` | Writes `CODE_REVIEW_MAPPING.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
-| `local-context-code-review-mapping-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CODE_REVIEW_MAPPING.md` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `XPLAIN:` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
+| `local-context-code-review-mapping [feature \| free text]` | Writes `CRM.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
+| `local-context-code-review-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CRM.md` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `<xplain> … </xplain>` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
 
@@ -63,7 +63,7 @@ They work across a container repo and its submodules, e.g. a backend and a front
 /local-context:local-context-code-review-mapping <feature>
 ```
 
-Writes `.local_context/<feature>/CODE_REVIEW_MAPPING.md`: every file the feature's branches change, grouped by the
+Writes `.local_context/<feature>/CRM.md`: every file the feature's branches change, grouped by the
 capability it implements (each repo's files side by side under the repo name, specs with the code they test), in
 reading order, foundations first. A group with many files (around 10 in one repo) is split into subgroups when its
 files hold ideas that read separately (e.g. `Report templates / CSV export`); one idea stays one group. Lockfiles,
@@ -79,7 +79,7 @@ changed file is left out. Run it again whenever the branches move; never edit th
 /local-context:local-context-crn <feature> 2 zed      # name the IDE up front
 ```
 
-`local-context-crn` is the short alias of `local-context-code-review-mapping-navigator` (crn = code-review-navigator).
+`local-context-crn` is the short alias of `local-context-code-review-navigator` (crn = code-review-navigator).
 The `<crn>` tag you write in the code (step 5 below) is a different thing: crn = code-review-note.
 
 1. It asks once which IDE you use and finds its command-line launcher (on `PATH`, else from the web, else it asks
@@ -91,10 +91,19 @@ The `<crn>` tag you write in the code (step 5 below) is a different thing: crn =
    business rules), with the files involved and key spots as `<repo>/path:line`, as the map writes them. It writes
    this from the diff and checks it against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md`, flagging wrong patterns,
    broken or missed rules and surprising behaviour. A mechanical group gets one line per change: what changed and why.
-   You review from the explanation and open the code only to verify. In the worktrees, a one-line `XPLAIN: …` comment
-   sits above each block of functions, classes or constants that share a domain concept, saying what it is for.
+   You review from the explanation and open the code only to verify. In the worktrees, an `<xplain> … </xplain>`
+   comment sits above each block of functions, classes or constants that share a domain concept, saying what it is
+   for. It takes one line, or several when the code needs more, in the file's comment syntax:
+
+   ```ruby
+   # <xplain> refund rules: who gets money back,
+   # and how much once the order has shipped </xplain>
+   def refundable?(order)
+   ```
+
    These notes exist only in the review worktree: they are never applied to your checkout or committed, and they go
-   away with the worktree.
+   away with the worktree. The lines from one starting with `<xplain>` to the one holding `</xplain>` are dropped
+   when the edits are applied, so an `<xplain>` you write yourself there is dropped too.
 4. In the IDE's git view, the **staged changes** are exactly this group's part of the merge request. Read them like
    a small merge request.
 5. While you read:
@@ -127,7 +136,7 @@ The `<crn>` tag you write in the code (step 5 below) is a different thing: crn =
      chat with its `file:line`. Each `<crn>` is done or answered, then removed. Only comments you add during the
      review count.
 6. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and it asks whether to
-   open the next group. Nothing is ever committed or pushed for you. The group's heading in `CODE_REVIEW_MAPPING.md` gets
+   open the next group. Nothing is ever committed or pushed for you. The group's heading in `CRM.md` gets
    ` ✅ reviewed`, so the next session (tomorrow, say) starts at the first group not yet reviewed. Regenerating
    the map clears the marks.
 7. After each group it asks whether to remove the review worktrees (it names their paths), e.g. when you stop
@@ -184,6 +193,16 @@ Leave out `-g` to install into the current project only. Install all the skills 
 `local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
+### Upgrading to 2.0.0
+
+- The code review map is now `CRM.md` (it was `CODE_REVIEW_MAPPING.md`). Regenerate it with
+  `local-context-code-review-mapping`, which also deletes the old file, or rename it.
+- `local-context-code-review-mapping-navigator` is now `local-context-code-review-navigator`; the alias
+  `local-context-crn` is unchanged.
+- Review worktree reading notes are `<xplain> … </xplain>` comments (were `XPLAIN:` lines). In a review worktree left
+  from 1.x, the old `XPLAIN:` lines now count as review edits: when asked about leftover edits, discard them, or
+  delete those lines before applying.
+
 ### Upgrading from 0.2.x
 
 The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:local-context-new`, and so on.
@@ -197,8 +216,8 @@ The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:lo
   marketplace.json     # makes this repo its own marketplace
 skills/
   local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping,
-                                           # code-review-mapping-navigator, crn (alias)
-  local-context-code-review-mapping-navigator/scripts/crn.sh  # review worktrees: prepare, stage, crn, apply, cleanup
+                                           # code-review-navigator, crn (alias)
+  local-context-code-review-navigator/scripts/crn.sh  # review worktrees: prepare, stage, crn, apply, cleanup
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
 ```
 

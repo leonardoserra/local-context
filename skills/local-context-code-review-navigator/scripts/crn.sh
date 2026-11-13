@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# crn.sh — code review navigator worktrees for a CODE_REVIEW_MAPPING.md. Run from the project root.
+# crn.sh — code review navigator worktrees for a CRM.md. Run from the project root.
 #
 #   crn.sh list    <map>                  numbered group headings (reviewed ones end with " ✅ reviewed")
 #   crn.sh reviewed <map> <group>         marks the group reviewed in the map's heading, so a later session skips it
@@ -8,18 +8,21 @@
 #   crn.sh stage   <map> <repo> <path>... bring the mapped head version of files outside the group in, before editing them
 #   crn.sh crn     <map>                  <crn> (code-review-note) comments in the review edits, file:line:text
 #   crn.sh status  <map>                  per review worktree: repo<TAB>worktree, then one line per pending review edit
-#   crn.sh apply   <map>                  review edits -> each repo's checkout (XPLAIN notes stripped), then drops them
+#   crn.sh apply   <map>                  review edits -> each repo's checkout (xplain notes stripped), then drops them
 #                                         from the worktrees
-#   crn.sh cleanup <map>                  removes the review worktrees, XPLAIN notes and all
+#   crn.sh cleanup <map>                  removes the review worktrees, xplain notes and all
 #
 # Baseline = the tree written by prepare (<worktree>.tree). Review edits = worktree + untracked files vs baseline,
-# staged or not. XPLAIN notes (a comment line of its own: marker, space, "XPLAIN: ") are the agent's reading aids:
-# never review edits, never applied. Exit 2 = refused, nothing changed; exit 3 = a patch did not apply, kept next
-# to its worktree.
+# staged or not. xplain notes are the agent's reading aids, never review edits, never applied: the added lines from
+# one whose first non-blank text is a comment marker, a space and "<xplain>" to the first one holding "</xplain>".
+# Exit 2 = refused, nothing changed; exit 3 = a patch did not apply, kept next to its worktree.
 set -euo pipefail
 
 command=${1:?command}
 map=${2:?map}
+if [ ! -f "$map" ] && [ -f "$(dirname "$map")/CODE_REVIEW_MAPPING.md" ]; then
+  echo "no map: $map, only the pre-2.0.0 $(dirname "$map")/CODE_REVIEW_MAPPING.md: regenerate it (local-context-code-review-mapping) or rename it to CRM.md" >&2; exit 1
+fi
 [ -f "$map" ] || { echo "no map: $map (usage: crn.sh $command <map> ..., the map always comes first)" >&2; exit 1; }
 root=$(git rev-parse --show-toplevel)
 root_name=$(basename "$root")
@@ -42,10 +45,41 @@ group_paths() { awk -v n="$1" '/^### /{i++} i==n && /^  - /{sub(/^  - /,""); pri
 
 existing_worktrees() { local name; for name in $(repo_names); do [ -f "$worktrees_root/$name.tree" ] && echo "$name"; done; true; }
 
-xplain='^[[:space:]]*[^[:alnum:][:space:]]+ XPLAIN: '
+# Reads `git diff -U0 --no-prefix --no-renames <tree>`. Prints <line><TAB><file> per added line of an xplain note
+# (line as in the worktree file), and <TAB><file> per file with any other text or mode change. A note not closed
+# within its run of added lines is not a note: its lines count as review edits.
+xplain_lines() {
+  awk '
+    function end_run() { if (open) other[file] = 1; n = 0; open = 0 }
+    /^diff --git / {end_run(); header = 1; mode = 0; next}
+    header && /^(old|new|deleted file|new file) mode / {mode = 1}
+    # git ends a ---/+++ name holding a space with a tab
+    header && /^--- / {file = substr($0, 5); sub(/\t$/, "", file); next}
+    header && /^\+\+\+ / {if (substr($0, 5) != "/dev/null") { file = substr($0, 5); sub(/\t$/, "", file) }; next}
+    /^@@/ {end_run(); header = 0; if (mode) other[file] = 1; split($3, start, ","); line = substr(start[1], 2); next}
+    header {next}
+    /^-/ {end_run(); other[file] = 1; next}
+    /^\+/ {
+      text = substr($0, 2)
+      if (!open && text ~ /^[[:space:]]*[^[:alnum:][:space:]]+ <xplain>/) open = 1
+      if (!open) other[file] = 1
+      else {
+        held[++n] = line
+        if (index(text, "</xplain>")) { for (i = 1; i <= n; i++) print held[i] "\t" file; n = 0; open = 0 }
+      }
+      line++
+    }
+    END {end_run(); for (f in other) print "\t" f}'
+}
 
+# files with review edits: changed files, except those whose only changes are xplain notes; plus untracked files
 pending_edits() {
-  git -C "$1" diff --numstat --no-renames -I"$xplain" "$(cat "$1.tree")" | cut -f3-
+  local tree
+  tree=$(cat "$1.tree")
+  git -C "$1" diff --name-only --no-renames "$tree" | grep -vxF -f <(
+    git -C "$1" diff -U0 --no-prefix --no-renames "$tree" | xplain_lines |
+      awk -F'\t' '$1 == "" {other[$2] = 1; next} {note[$2] = 1} END {for (f in note) if (!(f in other)) print f}'
+  ) || true
   git -C "$1" ls-files -o --exclude-standard
 }
 
@@ -151,11 +185,9 @@ case $command in
     for name in $to_apply; do
       worktree=$worktrees_root/$name
       target=$(repo_dir "$name")
-      # drop the XPLAIN lines added since the baseline, bottom up per file so line numbers hold
-      git -C "$worktree" diff -U0 --no-prefix "$(cat "$worktree.tree")" | awk -v re="$xplain" '
-        /^\+\+\+ / {file=substr($0, 5); next}
-        /^@@/ {split($3, start, ","); line=substr(start[1], 2); next}
-        /^\+/ {if (substr($0, 2) ~ re) print line "\t" file; line++}' | sort -t"$(printf '\t')" -k2,2 -k1,1nr |
+      # drop the xplain note lines added since the baseline, bottom up per file so line numbers hold
+      git -C "$worktree" diff -U0 --no-prefix --no-renames "$(cat "$worktree.tree")" | xplain_lines |
+        awk -F'\t' '$1 != ""' | sort -t"$(printf '\t')" -k2,2 -k1,1nr |
         while IFS="$(printf '\t')" read -r line file; do
           awk -v n="$line" 'NR != n' "$worktree/$file" > "$worktree.strip" && cat "$worktree.strip" > "$worktree/$file"
         done
