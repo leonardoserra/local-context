@@ -71,7 +71,9 @@ git -C <repo> log --oneline origin/<base>..origin/<feature_branch>
   branch ahead (`git -C <repo> rev-list --count origin/<feature_branch>..<feature_branch>` not 0) → say in the header
   that those commits are not in the map.
 - Record for the header: merge base (`git -C <repo> merge-base origin/<base> origin/<feature_branch>`) and head SHA
-  (`git -C <repo> rev-parse origin/<feature_branch>`), both short.
+  (`git -C <repo> rev-parse origin/<feature_branch>`), both short. Head is always the fetched remote branch.
+- The user's checkout: `git -C <repo> rev-parse HEAD` differs from the full Head SHA → warn in step 7 (repo, its
+  branch and short SHA): the navigator applies review edits onto that checkout, which then holds other code.
 - Prefix every path with the repo's path from the project root (`<submodule>/app/...`), so each opens from the root.
   The root repo's files keep their plain path; a submodule pointer change is one more file.
 - Save the full prefixed list, sorted, one path per line, to `<s>/changed.txt` (`<s>` = the session scratchpad, or
@@ -142,6 +144,11 @@ coverage check (step 6). Its shape, group row and `_crm/STATE.md`, one read (`<n
   `sed "s|^|\"$root/|; s|$|\"|" <paths> | paste -sd' ' - | sed 's/^/code /'`.
 - Mark a deleted file `(deleted)` and a renamed one `(renamed from <old path>)` after its path.
 - `Read for:` is a pointer, not a finding: "the date window the query applies", not "this query is slow".
+- `Context:` (optional, one line): the code outside the group the reader needs to follow it, at Head — the callers of
+  what the group changes, what feeds it (a block, callback or argument built elsewhere), constants it reads. Each as
+  `<repo>/path:line — <what it is to the group>`, `; ` between them, at most 5. Find them cheaply:
+  `git -C <repo> grep -n -w '<symbol>' <Head> -- . ':!<group file, repo-relative>'…` for the methods, classes and constants the
+  group adds or changes (output `<Head>:path:line:text`). Still a pointer: what the code is, never a judgement.
 
 ## 6 — Coverage check (mandatory)
 
@@ -156,7 +163,8 @@ LC_ALL=C comm -13 <s>/changed_sorted.txt <s>/mapped.txt   # mapped but not chang
 LC_ALL=C sort <s>/mapped_all.txt | uniq -d               # in 2+ groups: list them in the header
 ```
 
-Fix the map until both `comm` print nothing; write the counts (`wc -l` of `mapped.txt` and `changed_sorted.txt`,
+Check every `Context:` citation at Head: `git -C <repo> show <Head>:<path> | sed -n '<line>p'` must show the symbol
+it names; fix or drop a miss. Fix the map until both `comm` print nothing; write the counts (`wc -l` of `mapped.txt` and `changed_sorted.txt`,
 equal) and the 2+ list into its header. Then install it whole, replacing any earlier map, and read it back:
 
 - **Legacy**: `cp <s>/map.md F/CRM.md`; delete a pre-2.0.0 `CODE_REVIEW_MAPPING.md` there and say so.
@@ -175,5 +183,5 @@ Never commit or push `.local_context/`.
 ## 7 — Tell the user
 
 A few lines: the map's path, repos and ranges, group count, the coverage line, files in 2+ groups, local commits not
-in the map, the first group to read. Then print every group as in the map, in reading order, `open:` block included,
+in the map, checkouts not at Head (step 3), the first group to read. Then print every group as in the map, in reading order, `open:` block included,
 so the user can copy a repo's command.

@@ -6,9 +6,9 @@
 #   crn.sh list    <map>                  numbered group headings (reviewed ones end with " ✅ reviewed")
 #   crn.sh reviewed <map> <group>         marks the group reviewed (ICM: its Status cell; legacy: its heading), so a
 #                                         later session skips it
-#   crn.sh prepare <map> <group>          per repo of the group: review worktree at the mapped merge base, the
-#                                         group's files checked out (staged) from the mapped head; prints repo<TAB>worktree
-#   crn.sh stage   <map> <repo> <path>... bring the mapped head version of files outside the group in, before editing them
+#   crn.sh prepare <map> <group>          per repo of the group: review worktree with every file at the mapped head;
+#                                         its HEAD = a commit of the head tree with the group's files at the merge base,
+#                                         so the staged diff is the group's alone; prints repo<TAB>worktree
 #   crn.sh crn     <map>                  <crn> (code-review-note) comments in the review edits, file:line:text
 #   crn.sh status  <map>                  per review worktree: repo<TAB>worktree, then one line per pending review edit
 #   crn.sh apply   <map>                  review edits -> each repo's checkout (xplain notes stripped), then drops them
@@ -162,44 +162,37 @@ case $command in
       head=$(row_field "$repo" 6)
       worktree=$worktrees_root/$repo
       if [ -d "$worktree" ]; then
-        git -C "$worktree" checkout -q -f --detach "$merge_base"
+        git -C "$worktree" checkout -q -f --detach "$head"
         git -C "$worktree" clean -fdq
       else
         mkdir -p "$worktrees_root"
-        git -C "$(repo_dir "$repo")" worktree add -q --detach "$worktree" "$merge_base"
+        git -C "$(repo_dir "$repo")" worktree add -q --detach "$worktree" "$head"
       fi
-      printf '%s\n' "$paths" | while IFS= read -r line; do
+      # the group's paths in this repo, a rename's old path too; each is set back to the merge base, or removed
+      files=()
+      while IFS= read -r line; do
         [ "$(repo_of_path "$line")" = "$repo" ] || continue
-        file=$(relative_path "$repo" "$line")
-        case $file in
-          *' (deleted)') git -C "$worktree" rm -q -- "${file% (deleted)}" ;;
+        case $line in
           *' (renamed from '*)
-            old=$(relative_path "$repo" "$(echo "$file" | sed -E 's/.* \(renamed from (.*)\)$/\1/')")
-            git -C "$worktree" rm -q -- "$old"
-            git -C "$worktree" checkout "$head" -- "${file%% (renamed from *}" ;;
-          *) git -C "$worktree" checkout "$head" -- "$file" ;;
+            files+=("$(relative_path "$repo" "${line%% (renamed from *}")")
+            files+=("$(relative_path "$repo" "$(echo "$line" | sed -E 's/.* \(renamed from (.*)\)$/\1/')")") ;;
+          *) files+=("$(relative_path "$repo" "${line% (deleted)}")") ;;
         esac
-      done
+      done <<< "$paths"
+      GIT_INDEX_FILE="$worktree.index" git -C "$worktree" read-tree "$head"
+      GIT_INDEX_FILE="$worktree.index" git -C "$worktree" update-index --force-remove -- "${files[@]}"
+      git -C "$worktree" ls-tree "$merge_base" -- "${files[@]}" | GIT_INDEX_FILE="$worktree.index" git -C "$worktree" update-index --index-info
+      review_base=$(git -C "$worktree" -c user.name=local-context-crn -c user.email=crn@localhost commit-tree \
+        "$(GIT_INDEX_FILE="$worktree.index" git -C "$worktree" write-tree)" -p "$head" -m "crn review base: group $group")
+      rm -f "$worktree.index"
+      git -C "$worktree" reset -q --soft "$review_base"
       git -C "$worktree" write-tree > "$worktree.tree"
       printf '%s\t%s\n' "$repo" "$worktree"
     done
     ;;
 
-  stage)
-    repo=${3:?repo}; shift 3
-    worktree=$worktrees_root/$repo
-    [ -f "$worktree.tree" ] || { echo "no review worktree for $repo in this group" >&2; exit 2; }
-    head=$(row_field "$repo" 6)
-    for path in "$@"; do
-      file=$(relative_path "$repo" "$path")
-      [ -z "$(git -C "$worktree" diff --name-only "$(cat "$worktree.tree")" -- "$file")" ] || { echo "already edited: $file" >&2; exit 2; }
-      git -C "$worktree" checkout "$head" -- "$file"
-      GIT_INDEX_FILE="$worktree.index" git -C "$worktree" read-tree "$(cat "$worktree.tree")"
-      git -C "$worktree" ls-tree "$head" -- "$file" | GIT_INDEX_FILE="$worktree.index" git -C "$worktree" update-index --index-info
-      GIT_INDEX_FILE="$worktree.index" git -C "$worktree" write-tree > "$worktree.tree"
-      rm -f "$worktree.index"
-    done
-    ;;
+  # every file is at the mapped head after prepare: a no-op, kept for callers of the older protocol
+  stage) ;;
 
   crn)
     for name in $(existing_worktrees); do

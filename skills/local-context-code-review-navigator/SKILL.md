@@ -9,8 +9,8 @@ disable-model-invocation: true
 
 The code review map (written by `local-context-code-review-mapping`) splits a large merge request into groups by
 functionality. This skill turns each group into a small merge request review: the user's IDE opens, in one window, on
-a **review worktree** per repo where only the group's files differ, so the IDE's changes view shows exactly that
-group's diff. The user reads, asks, edits or leaves `<crn>` comments; the agent answers and edits there; on the user's
+a **review worktree** per repo where every file is at the branch head and only the group's changes are staged, so the
+IDE's changes view shows exactly that group's diff while go-to-definition and find-callers land on the real code. The user reads, asks, edits or leaves `<crn>` comments; the agent answers and edits there; on the user's
 OK the edits move to the user's checkout of the feature branch and the next group opens. Alias: `local-context-crn`.
 Two names share the letters: the alias `local-context-crn` = **code-review-navigator** (this skill); the `<crn>` tag =
 **code-review-note** (a comment the user leaves in the code, step 4). Typical calls:
@@ -37,10 +37,13 @@ through the `local-context-crn` alias. Run the script from the project root (`gi
 `bash <skill_dir>/scripts/crn.sh <command> <map> …`, `<map>` = the map step 1 finds, not resolved through a symlink.
 
 Each repo of a group gets one detached worktree, created on first use and reused for later groups, at
-`~/.cache/local-context-crn/<project>/<feature_name>/<repo>` (override with `LOCAL_CONTEXT_CRN_WORKTREES`). It sits at
-the map's merge base, with the group's files checked out from the map's head SHA. In it:
+`~/.cache/local-context-crn/<project>/<feature_name>/<repo>` (override with `LOCAL_CONTEXT_CRN_WORKTREES`). Its working
+tree and index hold the map's head SHA, every file; its detached HEAD is a commit `prepare` makes (no branch or ref)
+of the head tree with the group's files set back to the merge base (an added file left out, a deleted one restored,
+both paths of a rename). In it:
 
-- **staged changes** = what the branch changed in this group (the merge request diff);
+- **staged changes** = what the branch changed in this group (the merge request diff); every other file reads as at
+  Head, so code the group calls or is called from is there to read and cite;
 - **review edits** = anything that differs from that starting state (`<worktree>.tree`), staged or not, plus new
   files. The user's checkouts are not touched until `apply`;
 - **xplain notes** (step 3) are never review edits: `status`, `prepare` and `cleanup` do not count them as pending,
@@ -55,7 +58,6 @@ the map's merge base, with the group's files checked out from the map's head SHA
 | `list <map>` | the groups | `<n>. <heading>`; total = line count; a reviewed group's heading ends with ` ✅ reviewed` |
 | `reviewed <map> <n>` | marks group `n` reviewed in the map (idempotent) | — |
 | `prepare <map> <n>` | resets the worktrees for group `n` | `repo<TAB>worktree` per repo of the group; exit 2 = review edits pending, nothing changed |
-| `stage <map> <repo> <path>...` | brings the head version of a file outside the group in, before editing it | exit 2 = the file is already edited, or the repo has no review worktree yet |
 | `crn <map>` | `<crn>` (code-review-note) comments the review edits added | `<file>:<line>:<text>`; `<crn>` already in the branch's code is never listed |
 | `status <map>` | pending review edits | per worktree a `repo<TAB>worktree` line, then one line per edited file; header lines only = nothing pending |
 | `apply <map>` | review edits → each repo's checkout, then drops them from the worktrees | `<repo>: <file>` per applied file; exit 2 = a `<crn>` is left or a checkout is not on the map's branch, nothing applied; exit 3 = that repo's patch did not apply (see step 5) |
@@ -106,19 +108,8 @@ ask: review again from group 1, or finish (step 6).
 1. `crn.sh prepare <map> <n>`. Exit 2 → list the pending edits and ask: apply (step 5) or discard (the step 1
    command).
 2. Print the group exactly as in the map — the file in row `n` of § Groups (legacy: its `###` section): heading,
-   `Read for:`, the `<repo>:` and `specs:` lists. Then `n / total`.
-3. Below that, per repo of the group, a `<repo>` section: what the group's changes do there as the code runs
-   (behaviour, flow, business rules enforced), then the files involved, key spots as `<repo>/path:line`: the path as
-   the map writes it, from the project root, never the worktree's own; lines as at Head. Write it from the group's
-   diff (`git -C <worktree> diff --cached`) and the code around it, never from the map alone. Check it against the
-   feature's business rules, if any, and the plan tasks it implements. ICM: only the index rows, header included
-   (`grep -iE '^\| (#|File) \||<group keywords>' F/_implementation_plan/STATE.md F/_business/STATE.md`), then only
-   those task and theme files; legacy: those sections of `IMPLEMENTATION_PLAN.md`, `BUSINESS.md`. Flag each wrong
-   pattern, rule broken or missed, or surprising behaviour with its `<repo>/path:line`. In an `Other / mechanical`
-   group, each `<repo>` section is one line per change: what changed and why (the lockfile follows the Gemfile bump);
-   flag only surprises (a dependency nobody asked for, a config value changed by hand, a generated file out of sync
-   with its source). The user reviews from this and opens code only to verify.
-4. **xplain notes**, so the code reads easier. In each worktree, in the group's changed code only, above each run of
+   `Read for:`, `Context:`, the `<repo>:` and `specs:` lists. Then `n / total`.
+3. **xplain notes**, so the code reads easier. In each worktree, in the group's changed code only, above each run of
    functions, methods, classes or constants serving the same domain concept, add an `<xplain> … </xplain>` comment on
    lines of its own, indented like the code, in the file's comment syntax. One line when it fits; else span lines,
    ending the last with `</xplain>`:
@@ -135,6 +126,24 @@ ask: review again from group 1, or finish (step 6).
    `crn.sh` strips exactly these lines (see "The review worktree"). Very concise, conceptual: what the block is for;
    more specific only where the code is not explicit or hard to follow. Then `git -C <worktree> add -u`: the notes
    show in the staged diff, the unstaged view keeps only review edits. Never commit the notes or copy them elsewhere.
+4. Below the group, per repo of the group, a `<repo>` section: what the group's changes do there as the code runs
+   (behaviour, flow, business rules enforced), then the files involved, key spots as `<repo>/path:line`: the path as
+   the map writes it, from the project root, never the worktree's own; lines as in the review worktree, notes
+   included (it is the file the user opens). Write it from the group's diff (`git -C <worktree> diff --cached`) and
+   the code around it, never from the map alone. Name the code outside the group that the group depends on or is
+   called from (callers, block or callback providers, constants, the map's `Context:` line): it is at Head in the
+   worktree, so cite it the same way. Check it against the feature's business rules, if any, and the plan tasks it
+   implements. ICM: only the index rows, header included
+   (`grep -iE '^\| (#|File) \||<group keywords>' F/_implementation_plan/STATE.md F/_business/STATE.md`), then only
+   those task and theme files; legacy: those sections of `IMPLEMENTATION_PLAN.md`, `BUSINESS.md`. Flag each wrong
+   pattern, rule broken or missed, or surprising behaviour with its `<repo>/path:line`. In an `Other / mechanical`
+   group, each `<repo>` section is one line per change: what changed and why (the lockfile follows the Gemfile bump);
+   flag only surprises (a dependency nobody asked for, a config value changed by hand, a generated file out of sync
+   with its source). The user reviews from this and opens code only to verify.
+   **Before printing it, prove every citation**: per `<repo>/path:line` (or `:from-to`),
+   `sed -n '<from>,<to>p' "<worktree>/<path without the repo prefix>"` must show the code the sentence claims. A
+   miss → find the right line in the worktree and fix the citation, never cite from memory, the map or another
+   checkout. A repo with no worktree in this group: check `git -C <repo> show <Head>:<path>` instead and say so.
 5. One IDE command for the whole group, every worktree `prepare` printed, in its order:
    `<launcher> [new-window flag] "<worktree 1>" "<worktree 2>" …`. Print it below the explanation in a `sh` block, so
    the user can copy it, then run it (terminal editor: print only). The previous group's window holds exactly these
@@ -146,12 +155,12 @@ ask: review again from group 1, or finish (step 6).
 
 ## 4 — During the review of a group
 
-- **Questions**: answer from the code and cite `<repo>/path:line`. The group's files: read the review worktree. Other
-  files: `git -C <repo> show <Head>:<path>` (the user's checkout may be dirty or elsewhere).
-- **Edits** go in the review worktree, never in the user's checkout. A file outside the group:
-  `crn.sh stage <map> <repo> <path>` first; else the worktree holds the merge-base version and the edit would revert
-  the branch. Exit 2 because the repo has no review worktree in this group → say so, and make the edit when that
-  repo's group opens, or in the user's checkout only if the user says so. New files: create them in the worktree.
+- **Questions**: answer from the code and cite `<repo>/path:line`, each checked in the review worktree as in step 3
+  item 4: every file there is at Head (the user's checkout may be dirty or elsewhere). A repo with no review worktree
+  in this group: `git -C <repo> show <Head>:<path>`.
+- **Edits** go in the review worktree, never in the user's checkout; a file outside the group too, it is at Head. A
+  repo with no review worktree in this group → say so, and make the edit when that repo's group opens, or in the
+  user's checkout only if the user says so. New files: create them in the worktree.
 - **`<crn>` comments** (crn = code-review-note, not the navigator). The user writes them in the review worktree, in
   the file's own comment syntax: `# <crn> … </crn>` (Ruby, YAML, shell), `// <crn> … </crn>` (TS/JS),
   `<!-- <crn> … </crn> -->` (HTML, Vue template), `/* <crn> … </crn> */` (CSS/SCSS), `-- <crn> … </crn>` (SQL). One

@@ -141,6 +141,7 @@ frontend model, http mixin, store, component, view).
 
 ### <functionality name> — <purpose, one line>
 Read for: <what to verify, one line — optional>
+Context: <repo>/path:line — <caller, input or constant outside the group, at Head>; … — optional
 <repo>:
   - <repo>/path/to/file.rb
 <other_repo>:

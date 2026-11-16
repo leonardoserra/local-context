@@ -76,7 +76,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `_business/` |
 | `local-context-code-review-mapping [feature \| free text]` | Writes `_crm/`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
 | `local-context-icm-migrate [feature]` | Migrates a flat pre-3.0.0 feature folder to the ICM layout, with every folder the feature spans (parent, sub-features, same-name folders in other repos), without asking anything: every piece cut with `sed` and proved with `cmp`, every unusual shape decided by fixed rules, pointers rewritten, one report at the end. The other skills run it when you pick **Migrate** in their layout check |
-| `local-context-code-review-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `_crm/` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `<xplain> … </xplain>` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
+| `local-context-code-review-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `_crm/` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `<xplain> … </xplain>` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where every file is at the branch head and only that group's changes are staged, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
 
@@ -108,7 +108,7 @@ capability it implements (each repo's files side by side under the repo name, sp
 reading order, foundations first. A group with many files (around 10 in one repo) is split into subgroups when its
 files hold ideas that read separately (e.g. `Report templates / CSV export`); one idea stays one group. Lockfiles,
 generated files and config are reviewed too, in a last `Other / mechanical` group, or several by domain (e.g.
-`Other / mechanical — dependencies`) when one is too big to follow mixed. Each group has a `Read for:` hint and one command per repo that opens all its files. A coverage check proves no
+`Other / mechanical — dependencies`) when one is too big to follow mixed. Each group has a `Read for:` hint, a `Context:` line pointing at the code outside the group it relies on (callers, inputs, constants, as `path:line` at the branch head), and one command per repo that opens all its files. A coverage check proves no
 changed file is left out. Run it again whenever the branches move; never edit the map by hand.
 
 ### 2. Review it group by group
@@ -126,9 +126,12 @@ The `<crn>` tag you write in the code (step 5 below) is a different thing: crn =
    you for the path). Terminal editors such as Neovim get a command to run yourself.
 2. For each repo the group touches it prepares a review worktree under `~/.cache/local-context-crn/`, and opens all of
    them in one IDE window, e.g. `code "<worktree of repo 1>" "<worktree of repo 2>"`. It prints that command below the
-   group's explanation, so you can run it again yourself. Your own checkouts are not touched.
+   group's explanation, so you can run it again yourself. Your own checkouts are not touched. Every file in a
+   worktree is at the branch head, so go-to-definition and find-callers land on the real code; only the group's
+   changes show as staged.
 3. Below the group's file lists it explains, per repo, what the group's changes do as the code runs (behaviour, flow,
-   business rules), with the files involved and key spots as `<repo>/path:line`, as the map writes them. It writes
+   business rules), with the files involved, the code outside the group it relies on or is called from, and key spots
+   as `<repo>/path:line`, as the map writes them, each checked against the worktree before it is printed. It writes
    this from the diff and checks it against the feature's business rules and plan, flagging wrong patterns,
    broken or missed rules and surprising behaviour. A mechanical group gets one line per change: what changed and why.
    You review from the explanation and open the code only to verify. In the worktrees, an `<xplain> … </xplain>`
@@ -220,6 +223,8 @@ claude plugin update local-context@local-context
 claude plugin uninstall local-context@local-context
 ```
 
+What changed in each version, and how to upgrade: [CHANGELOG.md](CHANGELOG.md).
+
 ### Codex, OpenCode, Hermes, OpenClaw and other agents
 
 With the [`skills` CLI](https://github.com/vercel-labs/skills), which copies the skills into each agent's skills folder:
@@ -234,55 +239,6 @@ the skills read `local-context-new/ICM*.md`, their layout checks run `local-cont
 `local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
-### Upgrading to 4.0.0
-
-The `.no_icm` file is replaced by `.icm`.
-
-- Update **every** agent install of the plugin (Claude Code, Codex, …) to 4.0.0: a 3.x install does not read
-  `.icm`, and it asks again about folders kept on the old layout.
-- Each feature folder holds an `.icm` file: `true` (ICM) or `false` (old flat layout kept). The skills read it and
-  no longer inspect the folder, except `local-context-tidy`, which looks for flat files an older install wrote. A
-  folder without it is checked once: an ICM folder gets `true` silently; a flat folder gets the one question below.
-  Migrate writes `true`, Keep writes `false`; delete `.icm` to be asked again. Dismissing the question keeps the
-  flat files for that run only and writes nothing.
-- A `.no_icm` file from 3.x is converted to `.icm` on sight, then deleted.
-
-### Upgrading to 3.0.0
-
-`.local_context/<feature>/` now uses the ICM layout (see above) instead of the flat `CURRENT.md`,
-`IMPLEMENTATION_PLAN.md`, `ARCHIVE.md`, `BUSINESS.md` and `CRM.md`.
-
-- Update **every** agent install of the plugin (Claude Code, Codex, …) before using it on a converted folder: an
-  older install would write flat files next to the `_` folders. `local-context-tidy` spots such a mixed folder and
-  offers to fold the flat files in.
-- The first time a skill opens a flat folder, it asks one question: **Migrate (Recommended)** or **Keep old
-  layout**. Keep leaves the flat files in use there (4.0.0 records the choice in `.icm`). Several folders
-  (sub-features, other repos) are listed in the same question.
-- Migrate runs `local-context-icm-migrate`, which asks nothing more: odd shapes (task ids like `P3b`, statuses in
-  headings, session logs inside the plan, decision sections under other names) are decided by fixed rules and
-  listed in its report.
-- Migrating makes no backup: every piece is cut from the flat file with `sed` and proved with `cmp`; a failed
-  proof aborts that folder and leaves it untouched. Pointers to the old files (`CURRENT.md`, …) are rewritten in
-  the live files, sibling folders included. Archive entries are never edited: the archive index gets a legend
-  mapping the old names to the new paths. An archive entry records the migration.
-- If your project's `CLAUDE.md` names the flat files, the question and the report point it out; update those lines
-  after migrating.
-
-### Upgrading to 2.0.0
-
-- The code review map is now `CRM.md` (it was `CODE_REVIEW_MAPPING.md`). Regenerate it with
-  `local-context-code-review-mapping`, which also deletes the old file, or rename it.
-- `local-context-code-review-mapping-navigator` is now `local-context-code-review-navigator`; the alias
-  `local-context-crn` is unchanged.
-- Review worktree reading notes are `<xplain> … </xplain>` comments (were `XPLAIN:` lines). In a review worktree left
-  from 1.x, the old `XPLAIN:` lines now count as review edits: when asked about leftover edits, discard them, or
-  delete those lines before applying.
-
-### Upgrading from 0.2.x
-
-The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:local-context-new`, and so on.
-`.local_context/` folders need no change.
-
 ## Layout
 
 ```
@@ -296,7 +252,7 @@ skills/
   local-context-new/ICM_OPS.md             # operations, the layout check and the legacy layout, by section
   local-context-new/ICM_FORMATS.md         # every file and row format, read by section
   local-context-icm-migrate/STEPS.md       # migrating a flat pre-3.0.0 folder: per-file cuts and rules, read by section
-  local-context-code-review-navigator/scripts/crn.sh  # review worktrees: prepare, stage, crn, apply, cleanup
+  local-context-code-review-navigator/scripts/crn.sh  # review worktrees: prepare, crn, apply, cleanup
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
 ```
 
