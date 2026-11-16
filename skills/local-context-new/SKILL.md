@@ -1,6 +1,6 @@
 ---
 name: local-context-new
-description: Create a new per-feature working-memory folder, .local_context/<feature_name>/, with CURRENT.md, IMPLEMENTATION_PLAN.md and ARCHIVE.md initialised from the user's description, creating .local_context/ and git-ignoring it when needed. Run by the user as local-context-new.
+description: Create a new per-feature working-memory folder, .local_context/<feature_name>/, in the ICM layout, initialised from the user's description, creating .local_context/ and git-ignoring it when needed. Run by the user as local-context-new.
 argument-hint: the new task is called <task name> it is about <description>
 disable-model-invocation: true
 ---
@@ -13,157 +13,46 @@ Creates `.local_context/<feature_name>/` for one piece of work. Typical call:
 local-context-new the new task is called <task name> it is about <description and details>
 ```
 
-The files are AI/agent working memory: each holds one kind of content, so a later session
-can read one short file and act.
-
-| File | Holds | Rule |
-|---|---|---|
-| `CURRENT.md` | what is true **now** — state, contracts, invariants, load-bearing decisions, open items, next step | replace a section when it stops being true; never append a correction |
-| `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks, each with repo, dependencies, `file:line` anchors, a **Done when** line; verification commands; a **Do NOT do (YAGNI)** table | never delete a shipped task — mark it `✅ DONE <date> (<sha>)`; blocked work goes under its own heading with the blocking question, never as a task with an invented default |
-| `ARCHIVE.md` | dated history, newest entry first, append-only | never rewrite old entries |
-| `BUSINESS.md` *(optional)* | the business rules of the feature: what it must do for users, clients and the company — scope, who gets/sees/edits what, data, timing. No technical rules | only when the work defines or changes business behaviour (a pure bug fix or upgrade has none); replace a rule when it changes, the old wording goes to ARCHIVE; never record who asked for a rule as a category — a rule is a rule |
-| `CRM.md` *(optional)* | a reading map of the feature's changed files, grouped by functionality, each repo's files together | never created here — written and regenerated only by `local-context-code-review-mapping`; derived from the branches, never edited by hand |
-
-If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules, those
-win over this table — read them first and follow them.
+Agent working memory in the ICM layout (`<this skill folder>/ICM.md`), one kind of content per file.
+`_current/` holds what is true **now** (replaced, never corrected by appending); the plan never loses a shipped
+task (marked `✅ DONE <date> (<sha>)`), and blocked work sits under § Blocked on a decision with its question,
+never as a task with an invented default; `_business/` holds only business rules (scope, who gets/sees/edits
+what, data, timing), never who asked; `_crm/` is written only by `local-context-code-review-mapping`. Always ICM,
+never `.no_icm`. The project's `CLAUDE.md` / `CLAUDE.local.md` rules on `.local_context/` win: read them first.
 
 ## Folder layout
 
-- **Flat by default.** One folder per feature, directly under `.local_context/`.
-- **Nested on request.** When the user asks to create a feature inside another one (e.g. a feature
-  split into subtasks), create `.local_context/<parent>/<sub_feature>/` with its own files. The
-  parent's `CURRENT.md` keeps what all the subtasks share; each sub-folder keeps only its own part
-  and points at the parent for the rest. Never nest unasked.
-- **One feature across several repos.** When the work spans repos (e.g. a container repo and its
-  submodules), give each repo's folder the same `<feature_name>`. Each folder holds only its own
-  repo's scope. Write a fact once, where it belongs, and elsewhere point at it as
-  `<path>/CURRENT.md:<line>` instead of copying it, so it is found fast and not re-read n times.
+One folder per feature under `.local_context/`. Nested only on request (`<parent>/<sub_feature>/`: the parent's
+`_current/` keeps what the subtasks share). Across repos, each repo's folder has the same name and only its own
+scope; a fact is written once and pointed at elsewhere (`<path>/_current/STATE.md:<line>`, or its file).
 
 ## Steps
 
-1. **Find the project root.** `git rev-parse --show-toplevel`; if that fails, the current
-   working directory is the root and the project is not a git repo.
-   In a git **worktree**, `.local_context` may be a symlink into the main checkout — check with
-   `ls -la`, and write through the symlink, never replace it with a directory.
-
-2. **Derive `<feature_name>`** — lowercase `snake_case`, the rule the folder name must follow:
-   - A single token (`Some-Name`, `SomeName`) → normalise it (`some_name`).
-   - A phrase or anything with spaces → make a short title of 2–4 words that names the work, not
-     the sentence, and say which name you chose and why in one line.
-   - The name comes only from the user's arguments. Names in this file are placeholders, never
-     folders to look for.
-   - Asked to put it inside another feature → the folder is
-     `.local_context/<parent>/<feature_name>/` (§ Folder layout); the parent must exist.
-   - If `.local_context/<feature_name>/` already exists, **stop** and ask: use it (then this skill
-     does nothing — suggest `local-context-tidy`), or pick another name. Never overwrite.
-
-3. **Create `.local_context/`** if absent (`mkdir -p`).
-
-4. **Git-ignore it, only in a git repo.** Check with `git check-ignore -q .local_context` from the
-   root. If not ignored, append `.local_context/` to the root `.gitignore` (create the file if
-   missing) and tell the user — that `.gitignore` change is a tracked-file edit they will see in
-   `git status`. Not a git repo: skip this step and say so.
-
-5. **Write the three files** from the templates below, filled from the user's description. Put
-   real content in, not placeholders: the goal, the scope, what is known, what is open. Anything
-   the user did not say stays as an explicit open question — do not invent file paths, versions or
-   decisions. If the description is thin, the plan may hold only "Task 1 — investigate/scope" with
-   the questions it must answer.
-   Write `BUSINESS.md` too, only if the description states business rules (who gets, sees or
-   edits what, scope, what changes for users or clients, timing); otherwise do not create it.
-   Business rules go there, not in `CURRENT.md`.
-
-6. **Read each file back** and confirm it is complete (no truncation), then report: folder path,
-   whether `.gitignore` changed, whether `BUSINESS.md` was created, and the first task in the plan. Do not commit anything —
-   `.local_context/` is never committed or pushed.
-
-## Templates
-
-`CURRENT.md`:
-
-```markdown
-# <feature_name> — CURRENT
-
-State as of **<YYYY-MM-DD>**. Current state only; history is in `ARCHIVE.md`, the work list in
-`IMPLEMENTATION_PLAN.md`.
-
-## Goal
-
-<one paragraph: what this work is for and what "done" means>
-
-## Scope
-
-- In: <...>
-- Out: <...>
-
-## Where it stands
-
-<nothing built yet / what exists today, with file:line where known>
-
-## Decisions
-
-<load-bearing decisions already taken, each with who/when; "none yet" is fine>
-
-## Open questions
-
-<what must be answered before or during the work>
-
-## RESUME HERE
-
-Next: `IMPLEMENTATION_PLAN.md` § Task 1.
-```
-
-`IMPLEMENTATION_PLAN.md`:
-
-```markdown
-# <feature_name> — IMPLEMENTATION_PLAN
-
-## START HERE — <YYYY-MM-DD>
-
-<one short paragraph: current state, the next task, anything blocking>
-
-## Tasks
-
-### 1 — <task title>
-
-- **Repo**: <repo or path>
-- **Depends on**: <none | task N>
-- **Anchors**: <file:line, or "to find">
-- **Done when**: <observable, checkable condition>
-
-## Blocked on a decision
-
-<none | the question, and who answers it>
-
-## Verification commands
-
-<commands that prove the work, e.g. test/lint/build>
-
-## Do NOT do (YAGNI)
-
-| Not doing | Why |
-|---|---|
-```
-
-`ARCHIVE.md`:
-
-```markdown
-## <YYYY-MM-DD> — folder created
-
-Created by `local-context-new` from: "<the user's description, verbatim>".
-```
-
-`BUSINESS.md` (optional, also created later by `local-context-continue` or
-`local-context-business-questions` when the first business rule is settled):
-
-```markdown
-# <feature_name> — BUSINESS
-
-Business rules as of **<YYYY-MM-DD>**: what this feature must do for users, clients and the
-company. No technical rules (those are in `CURRENT.md`). A rule that changes is replaced here; the
-old wording goes to `ARCHIVE.md`.
-
-## <theme, e.g. Scope · Who · Data · Timing>
-
-- <the rule, in business language> — <YYYY-MM-DD>; <ref: ticket comment, doc, call — if any>
-```
+1. **Root**: `git rev-parse --show-toplevel`, else the cwd (not a git repo). In a worktree, `.local_context` may be
+   a symlink into the main checkout (`ls -la`): write through it, never replace it with a directory.
+2. **`<feature_name>`**, lowercase `snake_case`, only from the user's arguments (names here are placeholders):
+   - a single token (`Some-Name`, `SomeName`) → normalised (`some_name`);
+   - a phrase → a 2–4 word title naming the work; say which and why in one line;
+   - never starting with `_` (ICM folders): drop leading underscores;
+   - inside another feature → `.local_context/<parent>/<feature_name>/`; the parent must exist;
+   - the folder exists → **stop** and ask: use it (this skill then does nothing; suggest `local-context-tidy`) or
+     another name. Never overwrite.
+3. `mkdir -p .local_context`.
+4. **Git-ignore it, in a git repo only**: `git check-ignore -q .local_context` from the root; not ignored → append
+   `.local_context/` to the root `.gitignore` (create it if missing) and tell the user: that is a tracked-file edit
+   in `git status`. Not a git repo: skip, say so.
+5. **Write the ICM tree** from the user's description. Formats, one call:
+   `sed '/^## F: business/,$d' <this skill folder>/ICM_FORMATS.md` (add `sed -n '/^## F: business/,/^## F: map/p'` only
+   when writing `_business/`). Real content, not placeholders: the goal, the scope, what is known, what is open.
+   What the user did not say stays an explicit open question — never invent paths, versions or decisions. A thin
+   description may give only "Task 1 — investigate/scope" with the questions it must answer.
+   - `_current/STATE.md`; `_current/_decisions/STATE.md`, `_current/_questions/STATE.md` with a file and row per
+     decision taken and per open question (empty tables are fine).
+   - `_implementation_plan/STATE.md` and `01_<slug>.md`, plus one per further task the description sets.
+   - `_archive/STATE.md` and `_archive/<YYYY_MM_DD>/1.md`, titled `folder created`, body:
+     Created by `local-context-new` from: "<the user's description, verbatim>".
+   - `_business/` only if the description states business rules (not for a pure bug fix or upgrade): they go
+     there, not in `_current/`.
+6. **Read back every file** in one call (`tail -n +1 $(find .local_context/<feature_name> -type f | sort)`),
+   confirm each is complete, then report: folder path, whether `.gitignore` changed, whether `_business/` was
+   created, and the first task. Never commit or push `.local_context/`.

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# crn.sh — code review navigator worktrees for a CRM.md. Run from the project root.
+# crn.sh — code review navigator worktrees for a code review map. Run from the project root.
+# <map> = .local_context/<feature>/_crm (ICM: STATE.md with the header and a Groups table, one file per group)
+#      or .local_context/<feature>/CRM.md (legacy: one file, a "### " heading per group).
 #
 #   crn.sh list    <map>                  numbered group headings (reviewed ones end with " ✅ reviewed")
-#   crn.sh reviewed <map> <group>         marks the group reviewed in the map's heading, so a later session skips it
+#   crn.sh reviewed <map> <group>         marks the group reviewed (ICM: its Status cell; legacy: its heading), so a
+#                                         later session skips it
 #   crn.sh prepare <map> <group>          per repo of the group: review worktree at the mapped merge base, the
 #                                         group's files checked out (staged) from the mapped head; prints repo<TAB>worktree
 #   crn.sh stage   <map> <repo> <path>... bring the mapped head version of files outside the group in, before editing them
@@ -20,17 +23,35 @@ set -euo pipefail
 
 command=${1:?command}
 map=${2:?map}
-if [ ! -f "$map" ] && [ -f "$(dirname "$map")/CODE_REVIEW_MAPPING.md" ]; then
-  echo "no map: $map, only the pre-2.0.0 $(dirname "$map")/CODE_REVIEW_MAPPING.md: regenerate it (local-context-code-review-mapping) or rename it to CRM.md" >&2; exit 1
+map=${map%/}
+dir=$(dirname "$map")
+if [ ! -e "$map" ]; then
+  if [ -f "$dir/CODE_REVIEW_MAPPING.md" ]; then
+    echo "no map: $map, only the pre-2.0.0 $dir/CODE_REVIEW_MAPPING.md: regenerate it (local-context-code-review-mapping) or rename it to CRM.md" >&2
+  elif [ -d "$dir/_crm" ]; then
+    echo "no map: $map; this folder uses the ICM layout: pass $dir/_crm" >&2
+  elif [ -f "$dir/CRM.md" ]; then
+    echo "no map: $map; this folder uses the legacy layout: pass $dir/CRM.md" >&2
+  else
+    echo "no map: $map (usage: crn.sh $command <map> ..., the map always comes first)" >&2
+  fi
+  exit 1
 fi
-[ -f "$map" ] || { echo "no map: $map (usage: crn.sh $command <map> ..., the map always comes first)" >&2; exit 1; }
+if [ -d "$map" ]; then
+  case $map in _crm|*/_crm) ;; *) echo "not a map folder: $map; pass $map/_crm" >&2; exit 1 ;; esac
+  header=$map/STATE.md
+  [ -f "$header" ] || { echo "no $header: regenerate the map (local-context-code-review-mapping)" >&2; exit 1; }
+else
+  header=$map
+fi
 root=$(git rev-parse --show-toplevel)
 root_name=$(basename "$root")
 feature=$(basename "$(dirname "$map")")
 worktrees_root=${LOCAL_CONTEXT_CRN_WORKTREES:-$HOME/.cache/local-context-crn}/$root_name/$feature
 
-repo_names() { awk -F' *\\| *' 'NF > 7 && $5 ~ /^[0-9a-f]+$/ && $6 ~ /^[0-9a-f]+$/ {print $2}' "$map"; }
-row_field() { awk -F' *\\| *' -v repo="$1" -v column="$2" '$2 == repo {print $column; exit}' "$map"; }
+# the repo table has 6 columns, so 8 fields; the 4-column Groups table never matches
+repo_names() { awk -F' *\\| *' 'NF > 7 && $5 ~ /^[0-9a-f]+$/ && $6 ~ /^[0-9a-f]+$/ {print $2}' "$header"; }
+row_field() { awk -F' *\\| *' -v repo="$1" -v column="$2" 'NF > 7 && $2 == repo {print $column; exit}' "$header"; }
 repo_dir() { if [ "$1" = "$root_name" ]; then echo "$root"; else echo "$root/$1"; fi; }
 
 repo_of_path() {
@@ -41,7 +62,20 @@ repo_of_path() {
 }
 relative_path() { if [ "$1" = "$root_name" ]; then echo "$2"; else echo "${2#"$1"/}"; fi; }
 
-group_paths() { awk -v n="$1" '/^### /{i++} i==n && /^  - /{sub(/^  - /,""); print}' "$map"; }
+# ICM: the rows of the "## Groups" table in STATE.md, as <n><TAB><file><TAB><status>; n = row order
+group_rows() { awk -F' *\\| *' '/^## /{in_groups = ($0 == "## Groups")} in_groups && $2 ~ /^[0-9]+$/ {print ++i "\t" $3 "\t" $5}' "$header"; }
+group_file() { group_rows | awk -F'\t' -v n="$1" -v dir="$map" '$1 == n {print dir "/" $2}'; }
+
+group_paths() {
+  local file
+  if [ -d "$map" ]; then
+    file=$(group_file "$1")
+    [ -n "$file" ] && [ -f "$file" ] || return 0
+    awk '/^  - /{sub(/^  - /,""); print}' "$file"
+  else
+    awk -v n="$1" '/^### /{i++} i==n && /^  - /{sub(/^  - /,""); print}' "$map"
+  fi
+}
 
 existing_worktrees() { local name; for name in $(repo_names); do [ -f "$worktrees_root/$name.tree" ] && echo "$name"; done; true; }
 
@@ -85,13 +119,27 @@ pending_edits() {
 
 case $command in
   list)
-    awk '/^### /{i++; sub(/^### /,""); print i". "$0}' "$map"
+    if [ -d "$map" ]; then
+      group_rows | while IFS="$(printf '\t')" read -r n file status; do
+        heading=$(awk '/^### /{sub(/^### /,""); print; exit}' "$map/$file")
+        case $status in *'✅ reviewed'*) heading="$heading ✅ reviewed" ;; esac
+        echo "$n. $heading"
+      done
+    else
+      awk '/^### /{i++; sub(/^### /,""); print i". "$0}' "$map"
+    fi
     ;;
 
   reviewed)
     group=${3:?group number}
-    awk -v n="$group" '/^### /{i++; if (i==n && $0 !~ / ✅ reviewed$/) $0=$0" ✅ reviewed"} {print}' "$map" > "$map.tmp"
-    mv "$map.tmp" "$map"
+    if [ -d "$map" ]; then
+      awk -F' *\\| *' -v n="$group" '/^## /{in_groups = ($0 == "## Groups")}
+        in_groups && $2 ~ /^[0-9]+$/ && ++i == n {$0 = "| " $2 " | " $3 " | " $4 " | ✅ reviewed |"} {print}' "$header" > "$header.tmp"
+      mv "$header.tmp" "$header"
+    else
+      awk -v n="$group" '/^### /{i++; if (i==n && $0 !~ / ✅ reviewed$/) $0=$0" ✅ reviewed"} {print}' "$map" > "$map.tmp"
+      mv "$map.tmp" "$map"
+    fi
     ;;
 
   prepare)

@@ -1,68 +1,60 @@
 ---
 name: local-context-code-review-mapping
-description: For one feature in .local_context/<feature_name>/, write CRM.md — a reading map of every file the feature's branches change, grouped by functionality with each repo's files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Maps, never reviews. Run by the user as local-context-code-review-mapping [feature_name | free text].
+description: For one feature in .local_context/<feature_name>/, write the code review map (_crm/) — a reading map of every file the feature's branches change, grouped by functionality with each repo's files side by side, so a reviewer can read a merge request too large to review file by file one chunk at a time. Works across a container repo and its submodules. Run by the user as local-context-code-review-mapping [feature_name | free text].
 argument-hint: "[feature_name] or free text naming the feature (optionally branches, base, repos, opener: code | zed | finder | explorer)"
 disable-model-invocation: true
 ---
 
 # local-context-code-review-mapping
 
-A feature's merge requests are often too large for a person to review file by file: the diff
-lists files alphabetically or by directory, so the logic that links a migration, a controller and
-a Vue view is spread across dozens of unrelated entries. This skill writes a **reading map**:
-every changed file, grouped by the capability it implements across repos, in an order that
-lets the reviewer read one group and understand it without the rest.
-Typical calls:
+A merge request too large to review file by file lists files by directory, so the logic linking a migration, a
+controller and a Vue view is spread across unrelated entries. This skill writes a **reading map**: every changed file,
+grouped by the capability it implements across repos, ordered so each group reads on its own. Typical calls:
 
 ```
 local-context-code-review-mapping <feature_name>
 local-context-code-review-mapping <feature_name> — branches feature/<branch_name> in both repos, base develop
-local-context-code-review-mapping <feature_name> — open with zed
 ```
 
-`<feature_name>` and `<branch_name>` are placeholders. The folder comes only from the user's
-arguments (step 1); never look for anything named in these examples.
+`<feature_name>` and `<branch_name>` are placeholders: the folder comes only from the arguments.
 
-Output: `.local_context/<feature_name>/CRM.md`, an optional file of the folder
-contract. It is **derived**: it mirrors the branches as they are now, is regenerated from scratch
-on every run, and is never edited by hand. The skill does not touch `CURRENT.md`,
-`IMPLEMENTATION_PLAN.md`, `ARCHIVE.md` or `BUSINESS.md`.
+Output: `.local_context/<feature_name>/_crm/` (legacy: `CRM.md`). It is **derived**: it mirrors the branches as they
+are now, is regenerated from scratch on every run, and is never edited by hand. Nothing else in `.local_context/` is
+written, apart from a conversion accepted in the layout check.
 
-It is a map, not a review: it never judges the code, flags bugs or suggests changes.
+It is a map, not a review: no judgement, bug flags, suggestions, diff excerpts or code summaries.
 
-If the project's `CLAUDE.md` / `CLAUDE.local.md` defines its own `.local_context/` rules or
-per-project constraints, **those win** over this file. Read them before step 2.
+The project's `CLAUDE.md` / `CLAUDE.local.md` rules and constraints **win** over this file; read them before step 2.
 
 ## 1 — Pick the feature
 
-Same as `local-context-continue`: exact name or path (or a unique prefix, different case, `-`/`_`)
-→ use it and say which folder matched; a phrase → infer the best match, then confirm with
-`AskUserQuestion` (or a plain question if the agent has no such tool), inferred folder first,
-labelled `(Recommended)`; no argument or no match → list the folders, most recently modified
-first, and ask. No `.local_context/` at all → say so and stop.
+As `local-context-continue` § 1: a name or path (any case, `-`/`_`, unique prefix) → use it, say which; a phrase →
+infer, confirm with `AskUserQuestion` (or a plain question), inferred first, `(Recommended)`; nothing → folders by
+recency (skip `_*`), ask. No `.local_context/` → say so, stop. Root: `git rev-parse --show-toplevel`, else cwd;
+`.local_context` may be a symlink (worktrees): write through it.
 
-Project root: `git rev-parse --show-toplevel`, else cwd. `.local_context` may be a symlink (git
-worktrees): resolve it and write through it.
+**Layout check**, before reading `F`: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`. No flat file (`CURRENT`,
+`IMPLEMENTATION_PLAN`, `ARCHIVE`, `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: the map is
+`F/_crm`, current state and plan the `STATE.md` of `_current/`, `_implementation_plan/`. `.no_icm` and no `_` folder →
+legacy: `F/CRM.md`, `CURRENT.md`, `IMPLEMENTATION_PLAN.md`. Otherwise →
+`<this skill folder>/../local-context-new/ICM_CONVERT.md` first.
 
 ## 2 — Find the repos, branches and base
 
-A feature can span several repos: a container repo with git submodules
-(`git submodule status`), each with its own `.local_context/<feature_name>/`, and a feature branch
-in some or all of them.
+A feature can span a container repo and its submodules (`git submodule status`), each with its own
+`.local_context/<feature_name>/` and maybe a feature branch.
 
-1. Read narrowly. In the root `CURRENT.md` and each subrepo's `CURRENT.md` for this feature, grep
-   for what names repos, branches and merge requests, then read only those lines:
-   `grep -nEi 'branch|merge request|MR|PR|base|develop|main|master|feature/' CURRENT.md`.
-   Arguments the user gave (branches, base, repos) win over what the files say.
-2. Check each candidate exists:
-   `git -C <repo> branch -a --list '*<branch_name>*'`. A repo with no feature branch is not part
-   of the map.
-3. Base: what CURRENT or the arguments say; otherwise the repo's integration branch (`develop` if
-   it exists, else the default branch: `git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD`).
-4. Anything still unknown or ambiguous (two candidate branches, no base, a repo CURRENT mentions
-   but with no branch) → ask in one `AskUserQuestion` call, recommendation first with
-   `(Recommended)`, one question per unknown. Never guess a branch: a wrong range maps the wrong
-   files.
+1. Read narrowly. In the current state of the root folder and of each subrepo folder for this feature, grep for what
+   names repos, branches and merge requests, then read only those lines:
+   `grep -nEi 'branch|merge request|MR|PR|base|develop|main|master|feature/' _current/STATE.md`. The user's arguments
+   (branches, base, repos) win over the files.
+2. Check each candidate exists (`git -C <repo> branch -a --list '*<branch_name>*'`); a repo with no feature branch is
+   not in the map.
+3. Base: what the current state or the arguments say; otherwise the repo's integration branch (`develop` if it exists,
+   else the default branch: `git -C <repo> symbolic-ref --short refs/remotes/origin/HEAD`).
+4. Anything unknown or ambiguous (two candidate branches, no base, a mentioned repo with no branch) → one
+   `AskUserQuestion` call, one question per unknown, recommendation first `(Recommended)`. Never guess a branch: a
+   wrong range maps the wrong files.
 
 ## 3 — List the changed files
 
@@ -75,145 +67,88 @@ git -C <repo> diff --stat=200 origin/<base>...origin/<feature_branch> | tail -1
 git -C <repo> log --oneline origin/<base>..origin/<feature_branch>
 ```
 
-- Three dots: the diff against the merge base, which is what the merge request shows.
-- Compare the remote branches, as the merge request does. If the local feature branch is ahead
-  (`git -C <repo> rev-list --count origin/<feature_branch>..<feature_branch>` is not 0), say so
-  in the header: those commits are not in the map.
-- Record for the header: merge base (`git -C <repo> merge-base origin/<base> origin/<feature_branch>`)
-  and head SHA (`git -C <repo> rev-parse origin/<feature_branch>`), both short.
-- Prefix every path with the repo's path from the project root (`<submodule>/app/...`,
-  `<submodule>/src/...`), so each path opens from the root. Files of the root repo itself keep
-  their plain path; a submodule pointer change in the root repo is one more file.
-- Save the full prefixed list, one path per line, sorted, to the scratchpad: `<s>/changed.txt`
-  (`<s>` = the session scratchpad, or `/tmp/local-context-code-review-mapping-<date>/`). For a
-  rename, the new path counts; for a deletion, the old one.
+- Three dots: the diff against the merge base, as the merge request shows; remote branches, as it compares. A local
+  branch ahead (`git -C <repo> rev-list --count origin/<feature_branch>..<feature_branch>` not 0) → say in the header
+  that those commits are not in the map.
+- Record for the header: merge base (`git -C <repo> merge-base origin/<base> origin/<feature_branch>`) and head SHA
+  (`git -C <repo> rev-parse origin/<feature_branch>`), both short.
+- Prefix every path with the repo's path from the project root (`<submodule>/app/...`), so each opens from the root.
+  The root repo's files keep their plain path; a submodule pointer change is one more file.
+- Save the full prefixed list, sorted, one path per line, to `<s>/changed.txt` (`<s>` = the session scratchpad, or
+  `/tmp/local-context-code-review-mapping-<date>/`); a rename counts its new path, a deletion its old.
 
 ## 4 — Group by functionality
 
 Infer the groups from cheap signals, not from full diffs:
 
 - the commit subjects from step 3;
-- the plan's task titles (`grep -n '^#' IMPLEMENTATION_PLAN.md`): tasks often already name the
-  capabilities;
-- file names: the same noun in backend and frontend files (`report_template.rb`,
-  `ReportTemplate.ts`, `reportTemplates` http mixin, `ReportTemplateForm.vue`);
-- routes ↔ frontend calls: grep the changed frontend files for the endpoint paths the changed
-  routes and controllers define;
-- for a file whose role is still unclear, a targeted read: `git diff <range> -- <file> | head -80`.
+- the plan's task titles (its Tasks table; legacy `grep -n '^#'`): tasks often already name the capabilities;
+- file names: the same noun in backend and frontend files (`report_template.rb`, `ReportTemplate.ts`,
+  `reportTemplates` http mixin, `ReportTemplateForm.vue`);
+- routes ↔ frontend calls: grep the changed frontend files for the endpoint paths the changed routes and controllers
+  define;
+- a file whose role is unclear: `git diff <range> -- <file> | head -80`.
 
-**Large diff** (roughly over 40 files or 2,000 changed lines in total): delegate the grouping to
-one `general-purpose` subagent, told **read-only, never edit**. Give it the repos, ranges,
-`<s>/changed.txt`, the commit subjects, the plan's task titles and the rules of this section and
-of section 5; ask for the map body in the section 5 format. Then run the coverage check (step 6)
-yourself; never trust the subagent's own count.
+**Large diff** (roughly over 40 files or 2,000 changed lines): delegate the grouping to one `general-purpose`
+subagent, **read-only, never edit**, given the repos, ranges, `<s>/changed.txt`, the commit subjects, the task titles
+and the rules of sections 4 and 5; ask for the map body in the section 5 format. Run the coverage check (step 6)
+yourself; never trust its count.
 
 Grouping rules:
 
-- **By capability, never by directory or layer.** A group pairs the backend files (migration,
-  model, query or service, controller, serializer, routes, jobs, rake tasks) with the frontend
-  files (models, http mixins, store, components, views) that implement the same capability.
-  `models/` or `controllers/` is never a group.
-- **A group may touch one repo only**, e.g. a backend-only import job.
-- **Split a group that holds ideas readable apart.** Around 10 files in one repo is the signal
-  to look. If they hold parts a reviewer can read and verify separately (the list query and the
-  CSV export, the form and the permission check), make one subgroup per idea, each with its own
-  files, specs and `open:` block. Keep one group when the files form a single idea that only makes
-  sense read together; never split by layer or by count alone. Name subgroups
-  `### <functionality name> / <idea> — <purpose, one line>`, as plain `###` groups next to each
-  other: `local-context-code-review-navigator` counts every `###` heading as one group,
-  and a `####` heading would merge its files into the group above.
+- **By capability, never by directory or layer.** A group pairs the backend files (migration, model, query or service,
+  controller, serializer, routes, jobs, rake tasks) with the frontend files (models, http mixins, store, components,
+  views) of the same capability; `models/` is never a group.
+- **A group may touch one repo only** (a backend-only import job).
+- **Split a group that holds ideas readable apart.** Around 10 files in one repo is the signal to look. If they hold
+  parts a reviewer can read and verify separately (the list query and the CSV export, the form and the permission
+  check), make one subgroup per idea, each with its own files, specs and `open:` block; one idea read together stays
+  one group. Never split by layer or count. Name subgroups `### <functionality name> / <idea> — <purpose, one line>`,
+  as plain `###` groups next to each other: `local-context-code-review-navigator` counts every `###` heading as one
+  group, and a `####` heading would merge its files into the group above.
 - **Specs sit with the code they test**, in the group's own `specs:` list, never in a test group.
-- **A shared file** that several capabilities touch (a routes file, a model registry, a store
-  index) goes in the group it mainly serves. If it serves several, list it in each and flag it
-  (step 6).
-- **Leftovers** — lockfiles, generated files, pure config, formatting-only edits, submodule
-  pointers — go in a final `Other / mechanical` group, reviewed like the rest. A domain whose
-  mechanical change is too big to follow mixed with the others gets its own such group
-  (`Other / mechanical — dependencies`, `Other / mechanical — CI`). Never drop a file.
+- **A shared file** (a routes file, a model registry, a store index) goes in the group it mainly serves; serving
+  several, it is listed in each and flagged (step 6).
+- **Leftovers** — lockfiles, generated files, pure config, formatting-only edits, submodule pointers — go in a final
+  `Other / mechanical` group, reviewed like the rest; a domain too big to follow mixed gets its own
+  (`Other / mechanical — dependencies`, `— CI`). Never drop a file.
 
 **Order of groups**, for reading:
 
-1. Foundations: schema and migrations, shared data and infrastructure other groups depend on.
-2. The capabilities that build on them, each after the ones it depends on; a capability's
-   subgroups together, in the same order.
+1. Foundations: schema, migrations, shared data and infrastructure others depend on.
+2. The capabilities on top, each after those it depends on; a capability's subgroups together.
 3. Cross-cutting work: downloads and exports, configuration, docs.
 4. `Other / mechanical` group(s), last.
 
-**Order inside a group**: data up, from storage to screen. Backend: migration, model, query or
-service, controller, serializer, routes, jobs. Frontend: model, http mixin, store, component, view.
+**Order inside a group**: data up, from storage to screen, as the map header's order line lists.
 
 ## 5 — Write the map
 
-Write `.local_context/<feature_name>/CRM.md` (the root-level folder of the
-feature; one map covers every repo). If the file exists, replace it whole: it is derived, and the
-header SHAs show when it went stale. A `CODE_REVIEW_MAPPING.md` in the folder is this map under its
-name before 2.0.0: once `CRM.md` is written, delete it and say so.
+Write the map to `<s>/map.md`: one map covers every repo; it goes in the feature's root-level folder `F` after the
+coverage check (step 6). Its shape, group row and `_crm/STATE.md`, one read (`<n>` =
+`<this skill folder>/../local-context-new`): `sed -n '/^- Review group/,/Row/p;/^## F: map/,$p' <n>/ICM_FORMATS.md`.
 
-````markdown
-# <feature_name> — code review mapping
-
-Generated <YYYY-MM-DD> by `local-context-code-review-mapping`. Derived from the branches below:
-regenerate it, never edit it by hand.
-
-| Repo | Branch | Base | Merge base | Head | Files |
-|---|---|---|---|---|---|
-| <repo> | <feature_branch> | <base> | <short sha> | <short sha> | <count> |
-
-Coverage: <N> files mapped / <N> changed. In 2+ groups: <path> (<group>, <group>) | none.
-Order inside each group: data up (migration, model, query, controller, serializer, routes, jobs;
-frontend model, http mixin, store, component, view).
-
-### <functionality name> — <purpose, one line>
-Read for: <what to verify, one line — optional>
-<repo>:
-  - <repo>/path/to/file.rb
-<other_repo>:
-  - <other_repo>/path/to/file.vue
-specs:
-  - <repo>/spec/path/to/file_spec.rb
-
-open:
-```sh
-# <repo>
-code "<root>/<repo>/path/to/file.rb" "<root>/<repo>/spec/path/to/file_spec.rb"
-# <other_repo>
-code "<root>/<other_repo>/path/to/file.vue"
-```
-
-### Other / mechanical — lockfiles, generated files, config
-  - <repo>/yarn.lock
-````
-
-- `<repo>` in the table is the repo's path from the project root (the first segment of its file paths);
-  the root repo itself is its folder name (`basename` of the project root).
-  `local-context-code-review-navigator` reads the table this way.
-- `local-context-code-review-navigator` appends ` ✅ reviewed` to a group's heading once the
-  user approves it. Regenerating the map drops these marks: the branches moved, so review again.
-- List a group's files per repo under `<repo>:`, with `<repo>` exactly as in the table, in table
-  order. Never use a role label (`backend:`, `frontend:`, `<repo> (backend):`). One list per repo,
-  even when it holds both server and client code. Omit a repo with no file in the group.
-- `open:` has one command per repo, under a `# <repo>` comment, opening at once its `<repo>:` files
-  and its files from `specs:`. `<root>` is the absolute project root
-  (`git rev-parse --show-toplevel`); quote every path. Skip deleted files; a repo left with no file
-  gets no command.
-  `Other / mechanical` groups get no `open:` block. The opener comes from the arguments:
-  - `code` (VS Code, default), `zed`, `cursor`: one command, all paths as arguments.
-  - `finder` (macOS): `open -R "<path>" "<path>"` reveals the files in Finder.
-  - `explorer` (Windows): Explorer takes one file per call, so chain
-    `explorer /select,"<path>"` calls with ` & `.
-  Build a repo's command from its paths, e.g.
+- `<repo>` in the table is the repo's path from the project root (the first segment of its file paths); the root
+  repo's is its folder name (`basename` of the root). The navigator reads the table this way.
+- The navigator marks a group reviewed once approved; regenerating drops the marks (the branches moved, review again).
+  A heading's `|` becomes `/`.
+- A group's files go per repo under `<repo>:`, exactly as in the table and in its order, one list per repo even with
+  server and client code; never a role label (`backend:`, `<repo> (backend):`); no empty repo.
+- `open:`: one command per repo under a `# <repo>` comment, opening its `<repo>:` and `specs:` files at once. `<root>`
+  = the absolute project root; quote every path; skip deleted files (a repo left with none gets no command).
+  `Other / mechanical` groups get no `open:`. The opener comes from the arguments: `code` (default), `zed`, `cursor` —
+  one command, all paths as arguments; `finder` (macOS) — `open -R "<path>" "<path>"`; `explorer` (Windows, one file
+  per call) — `explorer /select,"<path>"` calls chained with ` & `. E.g.
   `sed "s|^|\"$root/|; s|$|\"|" <paths> | paste -sd' ' - | sed 's/^/code /'`.
 - Mark a deleted file `(deleted)` and a renamed one `(renamed from <old path>)` after its path.
-- `Read for:` is a pointer, not a finding: "the date window the query applies", not "this query is
-  slow".
-- Nothing else: no review, no diff excerpts, no summary of the code.
+- `Read for:` is a pointer, not a finding: "the date window the query applies", not "this query is slow".
 
 ## 6 — Coverage check (mandatory)
 
-Every changed file must appear in at least one group. Prove it, with `<map>` the written file:
+Every changed file must appear in at least one group. Prove it:
 
 ```sh
-grep -E '^  - ' <map> | sed -E 's/^  - //; s/ \((deleted|renamed from .*)\)$//' > <s>/mapped_all.txt
+grep -E '^  - ' <s>/map.md | sed -E 's/^  - //; s/ \((deleted|renamed from .*)\)$//' > <s>/mapped_all.txt
 LC_ALL=C sort -u <s>/mapped_all.txt > <s>/mapped.txt
 LC_ALL=C sort -u <s>/changed.txt > <s>/changed_sorted.txt
 LC_ALL=C comm -23 <s>/changed_sorted.txt <s>/mapped.txt   # changed but not mapped: must print nothing
@@ -221,16 +156,24 @@ LC_ALL=C comm -13 <s>/changed_sorted.txt <s>/mapped.txt   # mapped but not chang
 LC_ALL=C sort <s>/mapped_all.txt | uniq -d               # in 2+ groups: list them in the header
 ```
 
-Fix the map until both `comm` print nothing, then write the counts and the 2+ list into the
-header (`wc -l < <s>/mapped.txt` and `wc -l < <s>/changed_sorted.txt`, which must be equal). Read
-the file back and confirm it is complete.
+Fix the map until both `comm` print nothing; write the counts (`wc -l` of `mapped.txt` and `changed_sorted.txt`,
+equal) and the 2+ list into its header. Then install it whole, replacing any earlier map, and read it back:
+
+- **Legacy**: `cp <s>/map.md F/CRM.md`; delete a pre-2.0.0 `CODE_REVIEW_MAPPING.md` there and say so.
+- **ICM**: cut `<s>/map.md` with `sed -n 'A,Bp'`: the lines before the first `### ` → `<s>/chead.md`; each `### `
+  section → `<s>/_crm/<NN>_<slug>.md`, NN = its group number. `<s>/groups.md` = `## Groups` and a row per group, as
+  read in step 5. Delete a leftover `CRM.md` / `CODE_REVIEW_MAPPING.md`:
+  ```sh
+  rm -rf <s>/_crm && mkdir <s>/_crm          # before cutting the group files
+  cat <s>/chead.md <group files, in order> | cmp - <s>/map.md
+  cat <s>/chead.md <s>/groups.md > <s>/_crm/STATE.md
+  crm=F/_crm; case $crm in */_crm) rm -rf "$crm" ;; *) false ;; esac && cp -R <s>/_crm "$crm" && diff -r <s>/_crm "$crm"
+  ```
 
 Never commit or push `.local_context/`.
 
 ## 7 — Tell the user
 
-A few lines: the map's path, the repos and ranges it covers, the number of groups, the coverage
-line, files in 2+ groups, any local commits not in the map, and the first group to read.
-
-Then print every group as in the map, in reading order: heading, `Read for:`, the `<repo>:` and
-`specs:` lists, and the `open:` block, so the user can copy one command to open a repo's files.
+A few lines: the map's path, repos and ranges, group count, the coverage line, files in 2+ groups, local commits not
+in the map, the first group to read. Then print every group as in the map, in reading order, `open:` block included,
+so the user can copy a repo's command.
