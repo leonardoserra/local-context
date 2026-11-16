@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 4.0.1 - 2026-11-16
+
+- Changed
+  - The code review worktree (`local-context-crn`) now shows every file at the reviewed branch head. Only the group's
+    changes are staged, as before. Before, files outside the group stayed at the merge base, so a caller or helper the
+    group depends on showed old code or was missing, and go-to-definition landed on stale code.
+  - Editing a file outside the group no longer needs `crn.sh stage` first: it is already at head. `stage` is kept as a
+    no-op for older callers.
+  - The group explanation now names the code outside the group that the group calls or is called from, with
+    `path:line`. Every cited line is checked against the review worktree before it is shown, and `<xplain>` notes are
+    added first, so the line numbers match what the IDE shows.
+  - `local-context-code-review-mapping` maps the fetched remote branch head, warns when the local checkout is
+    elsewhere, and may add a `Context:` line per group listing that out-of-group code (at most 5 entries, each checked).
+  - The README no longer carries per-version upgrade notes. They live in this file.
+
 ## 4.0.0 - 2026-11-16
 
 - Changed
