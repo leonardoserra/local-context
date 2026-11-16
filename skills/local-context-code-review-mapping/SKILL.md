@@ -20,7 +20,7 @@ local-context-code-review-mapping <feature_name> — branches feature/<branch_na
 
 Output: `.local_context/<feature_name>/_crm/` (legacy: `CRM.md`). It is **derived**: it mirrors the branches as they
 are now, is regenerated from scratch on every run, and is never edited by hand. Nothing else in `.local_context/` is
-written, apart from a conversion accepted in the layout check.
+written, apart from a migration accepted in the layout check.
 
 It is a map, not a review: no judgement, bug flags, suggestions, diff excerpts or code summaries.
 
@@ -37,7 +37,8 @@ recency (skip `_*`), ask. No `.local_context/` → say so, stop. Root: `git rev-
 `IMPLEMENTATION_PLAN`, `ARCHIVE`, `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: the map is
 `F/_crm`, current state and plan the `STATE.md` of `_current/`, `_implementation_plan/`. `.no_icm` and no `_` folder →
 legacy: `F/CRM.md`, `CURRENT.md`, `IMPLEMENTATION_PLAN.md`. Otherwise →
-`<this skill folder>/../local-context-new/ICM_CONVERT.md` first.
+`sed -n '/^## layout check/,/^## /p' <this skill folder>/../local-context-new/ICM_OPS.md` first: one question, migrate
+(`local-context-icm-migrate`) or keep the old layout.
 
 ## 2 — Find the repos, branches and base
 

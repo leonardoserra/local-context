@@ -28,7 +28,7 @@ read them before step 1.
 
 Never commit, push or stash, in a review worktree or in the user's checkouts, unless the user explicitly says so.
 Never commit or push `.local_context/`. The only `.local_context/` edit this skill makes is the review mark
-(`crn.sh reviewed`), apart from a conversion the user accepts in the layout check.
+(`crn.sh reviewed`), apart from a migration the user accepts in the layout check.
 
 ## The review worktree
 
@@ -70,7 +70,9 @@ the map's merge base, with the group's files checked out from the map's head SHA
   folders by recency (skip `_*`), ask. No `.local_context/` → say so, stop.
 - **Layout check**: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`. No `CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
   `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md` and no `.no_icm` → ICM, map `F/_crm`; `.no_icm` and no `_` folder →
-  legacy, map `F/CRM.md`; else → `<this skill folder>/../local-context-new/ICM_CONVERT.md` first.
+  legacy, map `F/CRM.md`; else →
+  `sed -n '/^## layout check/,/^## /p' <this skill folder>/../local-context-new/ICM_OPS.md` first: one question,
+  migrate (`local-context-icm-migrate`) or keep the old layout.
 - No map → tell the user to run `local-context-code-review-mapping <feature_name>` first, and stop. In a legacy
   folder, a `CODE_REVIEW_MAPPING.md` instead is the same map under its name before 2.0.0: say so, and offer to
   regenerate it (recommended) or rename it to `CRM.md`.

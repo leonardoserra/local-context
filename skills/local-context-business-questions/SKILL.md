@@ -34,7 +34,9 @@ exist at several levels (container repo + subrepos): find all (`ls */.local_cont
 **Layout check**, before reading `F` or another feature folder the run writes: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`;
 `<n>` = `<this skill folder>/../local-context-new`. No flat file (`CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
 `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: read `<n>/ICM.md`. `.no_icm` and no `_`
-folder → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Otherwise → `<n>/ICM_CONVERT.md` first.
+folder → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Otherwise →
+`sed -n '/^## layout check/,/^## /p' <n>/ICM_OPS.md` first: one question, migrate
+(`local-context-icm-migrate`) or keep the old layout.
 
 ## 2 — Read narrowly
 

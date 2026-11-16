@@ -1,6 +1,6 @@
 ---
 name: local-context-tidy
-description: Audit and clean one .local_context/<feature_name>/ folder so the current state holds only what is true now, the archive holds the history verbatim, business rules sit in the business folder, the plan is coherent with git and reality, and every ICM STATE.md index matches its folder. Offers to convert a flat pre-3.0.0 folder to ICM first; a folder kept flat is tidied as before. Run by the user as local-context-tidy [feature_name].
+description: Audit and clean one .local_context/<feature_name>/ folder so the current state holds only what is true now, the archive holds the history verbatim, business rules sit in the business folder, the plan is coherent with git and reality, and every ICM STATE.md index matches its folder. Offers to migrate a flat pre-3.0.0 folder to ICM first (local-context-icm-migrate); a folder kept flat is tidied as before. Run by the user as local-context-tidy [feature_name].
 argument-hint: "[feature_name]"
 disable-model-invocation: true
 ---
@@ -31,8 +31,10 @@ text with `sed` / `cat` (never retype), prove every move with `cmp`; GNU- and BS
 **Layout check**, before reading `F` or another feature folder the run writes: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`;
 `<n>` = `<this skill folder>/../local-context-new`. No flat file (`CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
 `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: read `<n>/ICM.md`. `.no_icm` and no `_`
-folder → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Otherwise → `<n>/ICM_CONVERT.md` first.
-A conversion runs first, with its own proofs; then tidy runs on the ICM folder.
+folder → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Otherwise →
+`sed -n '/^## layout check/,/^## /p' <n>/ICM_OPS.md` first: one question, migrate
+(`local-context-icm-migrate`) or keep the old layout.
+A migration runs first (`local-context-icm-migrate`), with its own proofs; then tidy runs on the ICM folder.
 
 ## 1 — Back up
 
@@ -105,6 +107,6 @@ anything not this feature's work. Propose the cut and the fixes, recommend, and
 
 ## 7 — Tell the user
 
-A few lines: the conversion if any, line counts before → after, what was archived (round-tripped), what moved
+A few lines: the migration if any, line counts before → after, what was archived (round-tripped), what moved
 where, the plan fixes by kind, the state check, what needs their decision, where the backups are (and whether they
 survive the session).
