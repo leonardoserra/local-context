@@ -1,210 +1,175 @@
 ---
 name: local-context-business-questions
-description: For one feature in .local_context/<feature_name>/, establish where it really stands (docs checked against git, code and the ticket), then build — iterating with the user — the list of open questions only the business can answer, hand it over bilingual on the feature's ticket, and record the answers as business rules in .local_context/<feature_name>/BUSINESS.md. Asks only what the code and the project docs cannot answer, always with a recommendation. Run by the user as local-context-business-questions [feature_name | free text], typically before a call with the boss or product owner, or when a feature is paused on a business decision.
+description: For one feature in .local_context/<feature_name>/, check where it really stands (docs against git, code and ticket), build with the user the list of questions only the business can answer, post it bilingual on the ticket, and record the answers as business rules. Asks only what the code and docs cannot answer, always with a recommendation. Run by the user as local-context-business-questions [feature_name | free text], before a call with the decision-maker or when a feature waits on the business.
 argument-hint: "[feature_name] or free text naming the feature plus context (who decides, ticket key, language)"
 disable-model-invocation: true
 ---
 
 # local-context-business-questions
 
-Turns a feature that is stuck, paused or about to be re-scoped into **a short list of decisions the
-business has to take**, phrased so the decision-maker can answer each one without reading code.
-Typical calls:
+Turns a stuck, paused or re-scoped feature into **a short list of decisions the business has to take**, each
+answerable without reading code. Typical calls:
 
 ```
 local-context-business-questions <feature_name>
 local-context-business-questions <feature_name> — boss call on Thursday, ticket <TICKET-KEY>
 ```
 
-`<feature_name>` and `<TICKET-KEY>` are placeholders. The folder and ticket come only from the
-user's arguments (step 1); never look for anything named in these examples.
+`<feature_name>` and `<TICKET-KEY>` are placeholders: the folder and ticket come only from the arguments.
 
-The work is a loop with the user, not a one-shot report: the first draft is always wrong in some
-places — the user answers some questions themselves, rejects others, fixes the vocabulary, or
-realises a question belongs to another feature. The skill's value is running that loop
-efficiently and leaving a record nobody has to reconstruct later.
+A loop with the user, not a one-shot report: the first draft is always wrong somewhere. The value is running that
+loop efficiently and leaving a record nobody has to reconstruct. Outputs, in order: a state report with evidence;
+the question list, approved; its translation, approved; one ticket comment per ticket (English, `---`,
+translation); the record updated.
 
-Outputs, in order:
-
-1. A state report in chat: built / working / missing, each claim with its evidence.
-2. The question list, iterated with the user until approved.
-3. The same list translated into the business language, approved.
-4. One ticket comment per affected ticket: English, then `---`, then the translation.
-5. `.local_context` updated: business rules in `BUSINESS.md`, technical positions and open items
-   (pointing at the comment id) in CURRENT, drift fixed, ARCHIVE.
-
-If the project's `CLAUDE.md` / `CLAUDE.local.md` defines rules (who runs tests, approval before
-changes, naming, caveman/ponytail usage, how to write `.local_context`), **those win** over this file.
+The project's `CLAUDE.md` / `CLAUDE.local.md` rules (who runs tests, approval before changes, naming,
+caveman/ponytail usage, how to write `.local_context`) **win** over this file.
 
 ## 1 — Pick the feature
 
-Same as `local-context-continue`: exact name or path → use it; a phrase → infer, then confirm with
-`AskUserQuestion` or a plain question (inferred folder first, `(Recommended)`); nothing → list folders by recency and ask.
-A feature may exist at several levels (container repo + each subrepo): find all of them
-(`ls */.local_context/<feature>` and the root one).
+As `local-context-continue` § 1: a name or path → use it; a phrase → infer, confirm with `AskUserQuestion` (or a
+plain question), inferred first, `(Recommended)`; nothing → folders by recency (skip `_*`), ask. A feature may
+exist at several levels (container repo + subrepos): find all (`ls */.local_context/<feature>` and the root one).
+
+**Layout check**, before reading `F` or another feature folder the run writes: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`;
+`<n>` = `<this skill folder>/../local-context-new`. No flat file (`CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
+`BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: read `<n>/ICM.md`. `.no_icm` and no `_`
+folder → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Otherwise → `<n>/ICM_CONVERT.md` first.
 
 ## 2 — Read narrowly
 
-Everything read is re-sent on every later turn.
+Everything read is re-sent every later turn: read down the layers and stop when you have what you need.
 
-1. Each level's `CURRENT.md` for this feature (cross-repo one first). Over ~600 lines: head, status
-   banner, open items, any "undecided / blocked / paused" section.
-2. `IMPLEMENTATION_PLAN.md`: `grep -n '^#'`, then § Blocked / open questions only.
-   `BUSINESS.md` in full, if it exists: these rules are settled and are never asked again.
-3. The ticket: key from CURRENT/plan. Description **and comments** (comments hold the latest status;
-   with an MCP ticket tool, comments are often a separate call from the issue). Linked tickets: summary only.
-4. Cross-feature files CURRENT points to (an open-issues list, a sibling feature): only the sections
-   it names. Do not sweep sibling features "just in case".
-5. The project's own docs that state business rules: `BUSINESS.md`, `DOCUMENTATION.md`,
-   `README.md`, `CLAUDE.md`, `AGENTS.md` at the root, and similar (`docs/`, `*.md` naming the
-   domain). `grep -il` for the feature's business names first, then read only the matching sections.
-   Same for the other `.local_context/*/BUSINESS.md`: a rule another feature already settled holds here too.
-6. `ARCHIVE.md` only to answer a "why" — in particular "was this tried before and dropped?" when the
-   user proposes a design (step 7).
+1. Each level's indexes in one call, cross-repo first, the plan by section only:
+   `tail -n +1 F/_current/STATE.md F/_current/_*/STATE.md F/_business/STATE.md 2>/dev/null; sed -n '/^## Blocked/,/^## [^B]/p' F/_implementation_plan/STATE.md`.
+   A current state over 80 prose lines (`grep -vc '^|'`): head, status banner, open items, any "undecided /
+   blocked / paused" section. Open questions are candidates; decisions and business rules are settled, never asked again. Open a
+   question, decision or theme file only for a candidate it bears on.
+2. The ticket (key from the current state or plan): description **and comments** (the latest status; with an
+   MCP ticket tool often a separate call). Linked tickets: summary only.
+3. Files the current state points to in other features: only the file or section named; never sweep "just in case".
+4. The project's docs that state business rules (root `BUSINESS.md`, `DOCUMENTATION.md`, `README.md`, `CLAUDE.md`,
+   `AGENTS.md`, `docs/`, `*.md` naming the domain) and other features' business rules (`.local_context/*/_business/`,
+   `.local_context/*/BUSINESS.md`, no layout check): `grep -ril` the feature's business names, then only the
+   matching sections. A rule another feature settled holds here too.
+5. The archive only for a "why" — e.g. "was this tried before and dropped?" (step 7): `archive find`, open only
+   the matches.
 
 ## 3 — Check the docs against reality
 
-The record drifts. Before asking anyone to decide anything, prove what is true **today**:
+The record drifts. Before asking anyone to decide, prove what is true **today**, in **every** repo of the feature,
+frontend included:
 
-- Branch heads: `git ls-remote origin <branch>` vs the SHA the docs cite; ahead/behind the default
-  branch (`git rev-list --left-right --count <default>...<branch>`). Do this in **every** repo of the
-  feature, frontend included.
-- What users get today on the default branch — the behaviour the feature would change (read the
-  `file:line`). This is what "Today:" means in the questions.
+- Branch heads: `git ls-remote origin <branch>` vs the SHA the docs cite; ahead/behind
+  (`git rev-list --left-right --count <default>...<branch>`).
+- What users get today on the default branch, the behaviour the feature would change (`file:line`): what
+  "Today:" means in the questions.
 - Switches that keep it dark: feature flags, commented-out crons, env gates.
 - Whether the work it depends on exists yet (`git log --since=<pause date> -- <paths>`).
-- Statements in the docs that are no longer true (a DB column wiped by a nightly rebuild, a
-  framework limitation removed by an upgrade, a renamed branch).
+- Doc statements no longer true (a DB column wiped by a nightly rebuild, a limitation an upgrade removed, a
+  renamed branch).
 
-List every drift with its evidence and ask **fix now / later / skip** — never fix silently, never
-pick one of two disagreeing files silently.
+List each drift with its evidence and ask **fix now / later / skip** — never fix silently, never pick one of two
+disagreeing files silently.
 
 ## 4 — Report the state
 
-A few lines, plain language, evidence attached (`file:line`, command, ticket comment id):
-what is built and where, what is verified (specs, CI, manual), what is missing, what it waits on.
-End with the one-line answer to "does it work?".
+A few plain lines with evidence (`file:line`, command, ticket comment id): what is built where, what is verified
+(specs, CI, manual), what is missing, what it waits on. End with the one-line answer to "does it work?".
 
 ## 5 — Sort every open point
 
-Collect candidates from the docs' open items, the ticket, and anything step 3 surfaced.
-
-**Answer from the record first.** Before a candidate becomes a question — to the user or to the
-business — look for its answer in the code (today's behaviour), the feature's `BUSINESS.md`, and the
-project docs from step 2. Already answered → it is not asked: tell the user in one line with the
-source (`file:line` or `doc § section`); a business answer found outside `BUSINESS.md` is recorded
-there (step 10). Only what nothing answers stays a candidate.
-
-Put each remaining candidate in exactly one bucket:
+Candidates: the docs' open items, the ticket, what step 3 surfaced. **Answer from the record first**: the code
+(today's behaviour), the feature's business rules and decisions, the project docs. Answered → not asked: tell the
+user in one line with the source (`file:line`, `doc § section`); a business answer found outside the business
+rules is recorded there (step 10). The rest go in exactly one bucket:
 
 | Bucket | Test | Goes to |
 |---|---|---|
 | **Business** | Only the business can decide: scope, who gets/sees/edits what, data leaving the company, contract or privacy, what changes for users, release timing | the question list |
-| **Developer's call** | Technical, invisible to users, or already settled by "keep current behaviour" | ask the user directly, with your recommended answer; record as a technical position in CURRENT |
-| **Another feature** | The decision is owned by a different feature | that feature's `.local_context` + its ticket (step 7) |
+| **Developer's call** | Technical, invisible to users, or settled by "keep current behaviour" | ask the user, with your recommended answer; `decision add` |
+| **Another feature** | Owned by a different feature | that feature's `.local_context` and ticket (step 7) |
 
-Default when unsure whether something needs the business: **"where possible, no change to behaviour
-or UX"**. Things that stay as today go in a closing "kept as today unless you object" list, not as
-questions — the decision-maker can still object, but is not asked to think about them.
+Unsure whether it needs the business: **"where possible, no change to behaviour or UX"**. What stays as today goes
+in a closing "kept as today unless you object" list, not as questions.
 
 ## 6 — Draft the questions
 
-- **Group by theme**, only themes that apply: Scope · Where it lives / ownership · Who (recipients,
-  permissions) · Data and security · Timing and re-runs · Release. Number them `A1, A2, B1…` so
-  answers can be quoted back.
-- **One decision per question**, answerable with yes/no or a pick. If it needs two answers, split it.
-- **State the current answer** in italics after each: *Today: …* (default branch) and/or *Built: …*
-  (the parked branch). The decision-maker confirms or overrides instead of designing from scratch.
-- **Conditional questions** say so: *(Only if A1 includes …)*. A question whose answer only matters
-  under another one is folded into it as sub-bullets (e.g. link expiry, licensing and privacy all
-  hang off "are external addresses allowed?").
-- **Business names only.** Use the names users see: grep the frontend for the labels (both
-  languages). Always the full name — "automatic report", "report template", "competitor report" —
-  never a bare "report" where two kinds exist. No table names, classes or `file:line` in the
-  question text; evidence stays in chat and `.local_context`.
-- **Scope discipline.** Only questions about this feature. Wording, UI and email copy are not asked
-  unless the feature is about them.
-- Close with **"Kept as today unless you object:"** — one line each.
+- **Group by theme**, only those that apply: Scope · Where it lives / ownership · Who (recipients, permissions) ·
+  Data and security · Timing and re-runs · Release. Number `A1, A2, B1…` so answers can be quoted.
+- **One decision per question**, answerable yes/no or by a pick; two answers → split it.
+- **State the current answer** in italics: *Today: …* (default branch) and/or *Built: …* (the parked branch), so
+  the decision-maker confirms or overrides instead of designing.
+- **Conditional questions** say so: *(Only if A1 includes …)*; one that only matters under another is folded into
+  it as sub-bullets (link expiry, licensing, privacy under "are external addresses allowed?").
+- **Business names only**: the labels users see (grep the frontend, both languages), always the full name
+  ("automatic report", "report template"), never a bare "report" where two kinds exist. No table names, classes
+  or `file:line` in the question text; evidence stays in chat and `.local_context`.
+- **Scope discipline**: only this feature; no wording, UI or email copy unless the feature is about them.
+- Close with **"Kept as today unless you object:"**, one line each.
 
 ## 7 — Iterate with the user
 
-Show the draft and read the answer carefully; it usually mixes several moves. For each:
+Read each answer carefully; it usually mixes several moves:
 
-- **The user answers a question themselves** → it leaves the list. A business answer is a business
-  rule like any other, whoever gave it (the user, a manager, a client need): it goes to
-  `BUSINESS.md` (step 10). A technical answer is a position in CURRENT.
-- **"What is X? Is X real or your assumption?"** → prove it from code (`file:line`, route, guard),
-  answer in two lines, then rephrase the question so the doubt cannot recur.
-- **"No risk? Then keep as today."** → do the risk analysis with evidence. No new risk: it moves to
-  "kept as today". Risk only under another answer: fold it into that question.
-- **New vocabulary** (a new verb or concept for an action) → grep the code for the word before
-  adopting it. If it is already used — especially with a different or opposite meaning — say so with
-  the `file:line` and offer 3-5 alternatives checked the same way, recommendation first.
-- **A design idea that belongs to another feature** → analyse it there: what the code does today,
-  whether it was tried before and dropped (`ARCHIVE.md` — and whether those reasons still hold),
-  what it would change. Write the analysis into that feature's `CURRENT.md`, add it to its plan's
-  § Blocked, put pointers in its subrepo folders, draft its own questions for its own ticket, and
-  leave a one-paragraph note in this feature's `CURRENT.md` saying how it affects this one.
-- **"Be clearer"** → rewrite the question around one concrete example of what changes for a user.
+- **The user answers a question** → it leaves the list. A business answer is a business rule, whoever gave it
+  (step 10); a technical one, `decision add`.
+- **"What is X? Real or your assumption?"** → prove it from code (`file:line`, route, guard) in two lines, then
+  rephrase the question so the doubt cannot recur.
+- **"No risk? Then keep as today."** → risk analysis with evidence. No new risk: "kept as today". Risk only under
+  another answer: fold it into that question.
+- **New vocabulary** → grep the code for the word first. Already used, especially with another meaning → say so
+  with `file:line` and offer 3–5 alternatives checked the same way, recommendation first.
+- **A design idea owned by another feature** → layout check on its folders, then analyse it there: what the code
+  does today, whether it was tried and dropped (its `archive find`, and whether those reasons still hold), what it
+  would change. Write that into its `_current/STATE.md`, its plan's § Blocked (`question add` per open point),
+  pointers in its subrepo folders, its own questions for its own ticket; leave a one-paragraph note in this
+  feature's `_current/STATE.md` on how it affects this one.
+- **"Be clearer"** → rewrite around one concrete example of what changes for a user.
 
-Re-show the full revised list each round. Stop when the user approves.
+Re-show the full list each round until the user approves.
 
 ## 8 — Translate
 
-Ask once which language the decision-maker reads (default: the project's locale). Translate the
-approved text, using that language's UI labels from the frontend for every business name. Show it;
-the user approves it separately — they may want to read it before the English goes anywhere.
+Ask once which language the decision-maker reads (default: the project's locale); use its frontend UI labels for
+every business name. The user approves it separately, before the English goes anywhere.
 
 ## 9 — Post
 
-Only after an explicit go. One comment per ticket: English block, `---`, translated block, same
-structure and numbering. No AI attribution. Read the echoed body back and confirm it matches; note
-the comment id. If posting is not possible (no ticket tool, no ticket), give the text ready to paste.
+Only after an explicit go: one comment per ticket, English block, `---`, translated block, same structure and
+numbering, no AI attribution. Read the echoed body back and note the comment id. No ticket tool or ticket → give
+the text ready to paste.
 
 ## 10 — Record
 
-Read each region before writing and read it back after.
+In the feature's cross-repo folder and in other touched features (step 7). Read each region before writing and
+back after; replaced text goes verbatim into the archive entry.
 
-- **BUSINESS.md** (the feature's cross-repo one; create it from `local-context-new`'s template if
-  absent): every business rule settled in this run — answers from the business, from the user, or
-  found in the project docs (step 5) — under its theme, each with its date and ref (ticket comment
-  id, doc) if any. No split by who decided. A rule that changes an existing one replaces it; the
-  old wording goes to ARCHIVE verbatim. Code impact when resumed ("changes the built code: …",
-  "depends on A2") goes in CURRENT, pointing at the rule.
-- **CURRENT.md** (the feature's cross-repo one):
-  - § *Technical positions, <date>* — the developer's-call answers, each with its evidence and any
-    code impact when resumed.
-  - Open items: one line pointing at the ticket comment id as the source of the pending questions.
-  - Drift fixes the user approved in step 3, replacing the stale statement (never a correction
-    beside it).
-- **IMPLEMENTATION_PLAN.md**: § Blocked lists the pending questions by number with the ticket ref; a
-  dev task a position implies is added only if it does not depend on an unanswered question —
-  otherwise it waits in § Blocked with that dependency named.
-- **Other features touched**: same treatment in their folders (step 7).
-- **ARCHIVE.md**: one dated entry per touched folder, newest first, proving the old content
-  is intact (the second command must print nothing; then `cp` the new file into place):
-  `cat <entry.md> ARCHIVE.md > <scratch>/ARCHIVE.md`
-  `tail -c +$(( $(wc -c < <entry.md>) + 1 )) <scratch>/ARCHIVE.md | cmp - ARCHIVE.md`
-
-Never commit or push `.local_context/`.
+- **Business rules**: every rule settled this run (by the business, the user, or found in the docs) →
+  `business rule set` under its theme, with date and ref (ticket comment id, doc); no split by who decided. A
+  question it answers: `question answer`. Code impact when resumed ("changes the built code: …", "depends on A2")
+  → `_current/STATE.md`, pointing at the rule.
+- **Developer's calls**: `decision add` each, with evidence and code impact (legacy: § *Technical positions,
+  <date>* in `CURRENT.md`).
+- **Open items**: a line in `_current/STATE.md` pointing at the ticket comment id; `question add` each pending
+  question, citing it. Approved drift fixes replace the stale statement, never a correction beside it.
+- **Plan**: § Blocked on a decision lists the pending questions by number with the ticket ref. A dev task a
+  position implies: `plan add task` only if it depends on no unanswered question, else it waits in § Blocked with
+  that dependency named.
+- **Archive**: one entry per touched folder, `archive add`. Never commit or push `.local_context/`.
 
 ## 11 — Hand-off
 
-A few lines: where the questions were posted (ticket + comment id), what is pending on the business,
-business rules added to `BUSINESS.md`, technical positions recorded, drift fixed, follow-ups filed elsewhere, and what unblocks the feature first.
+A few lines: where posted (ticket + comment id), what the business owes, rules and decisions recorded, drift
+fixed, follow-ups filed elsewhere, what unblocks the feature first.
 
 ## Rules for the whole run
 
-- **No code, no DDL, no branch or MR changes.** This skill finds decisions; it does not act on them.
-- **Never invent a business answer to unblock work.** A probable direction may be recorded as
-  probable, never as decided.
-- **Prove it.** Every claim about the code, a branch or a behaviour carries its evidence; a guess is
-  labelled as a guess. An empty grep is an absence only if the search would have matched.
-- **Outward-facing means confirm first.** Ticket comments, documents, messages: show the final text,
-  wait for the go.
-- **Ask only what the record cannot answer.** Never ask the user something the code, `BUSINESS.md`,
-  the project docs or `.local_context` already answer; cite the source instead.
-- **Every question carries a recommendation**, open ones too: recommended first with
-  `(Recommended)` in `AskUserQuestion`, one line of why in prose. Ask in rounds, iterating on the
-  answers, until nothing is open.
-- **Short and clear** in chat; the decision-maker's text is plain business language.
+- **No code, no DDL, no branch or MR changes.** This skill finds decisions, never acts on them.
+- **Never invent a business answer to unblock work.** A probable direction is recorded as probable, never decided.
+- **Prove it.** Every claim about the code, a branch or a behaviour carries its evidence; a guess is labelled a
+  guess. An empty grep is an absence only if the search would have matched.
+- **Outward-facing means confirm first.** Ticket comments, documents, messages: show the final text, wait for go.
+- **Every question carries a recommendation**, open ones too: first with `(Recommended)` in `AskUserQuestion`,
+  one line of why in prose. Ask in rounds until nothing is open.
+- **Short and clear** in chat; plain business language for the decision-maker.

@@ -1,6 +1,6 @@
 ---
 name: local-context-crn
-description: Alias of local-context-code-review-navigator (crn = code-review-navigator; the <crn> tag left in code is a different thing, a code-review-note). Walks the user through a feature's CRM.md one group at a time in their IDE, answering questions and <crn> (code-review-note) comments and applying review edits to the feature branch. Run by the user as local-context-crn <feature_name> [group number] [ide].
+description: Alias of local-context-code-review-navigator (crn = code-review-navigator; the <crn> tag left in code is a different thing, a code-review-note). Walks the user through a feature's code review map (_crm/, or CRM.md in a legacy flat folder) one group at a time in their IDE, answering questions and <crn> (code-review-note) comments and applying review edits to the feature branch. Run by the user as local-context-crn <feature_name> [group number] [ide].
 argument-hint: "<feature_name> [group number] [ide name]"
 disable-model-invocation: true
 ---

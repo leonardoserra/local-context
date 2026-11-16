@@ -3,19 +3,57 @@
 A Claude Code plugin (and set of [Agent Skills](https://agentskills.io) for any agent) that gives each feature its own working memory in
 `.local_context/<feature>/`, so a later session can pick up exactly where the last one stopped.
 
-| File | Holds |
+| Folder | Holds |
 |---|---|
-| `CURRENT.md` | what is true **now**: state, decisions, open questions, and a § RESUME HERE section |
-| `IMPLEMENTATION_PLAN.md` | the ordered work: numbered tasks with anchors and a **Done when** line, verification commands, a "Do NOT do (YAGNI)" table |
-| `ARCHIVE.md` | dated history, newest first, append-only |
-| `BUSINESS.md` *(optional)* | the feature's business rules only (scope, who gets/sees what, data, timing), whoever decided them; not created for pure technical work such as a bug fix |
-| `CRM.md` *(optional)* | the code review mapping: a reading map of the feature's changed files, grouped by functionality with each repo's files side by side; derived from the branches and regenerated, never edited by hand |
+| `_current/` | what is true **now**: state, goal, scope, a § RESUME HERE section; one file per decision (`_decisions/`) and per open question (`_questions/`) |
+| `_implementation_plan/` | the ordered work: a Tasks table (status lives there), one file per task with anchors and a **Done when** line, verification commands, a "Do NOT do (YAGNI)" table |
+| `_archive/` | dated history, one entry per file (`YYYY_MM_DD/N.md`), append-only |
+| `_business/` *(optional)* | the feature's business rules only (scope, who gets/sees what, data, timing), one file per theme, whoever decided them; not created for pure technical work such as a bug fix |
+| `_crm/` *(optional)* | the code review mapping: a reading map of the feature's changed files, one file per functionality group with each repo's files side by side; derived from the branches and regenerated, never edited by hand |
 
 `.local_context/` is git-ignored automatically and never committed.
 
 Folders are flat, one per feature. Ask for a feature inside another one (e.g. a feature split into subtasks) and it is
-nested: the parent's `CURRENT.md` holds what the subtasks share. A feature spanning several repos gets a folder of the
+nested: the parent's `_current/` holds what the subtasks share. A feature spanning several repos gets a folder of the
 same name in each repo, each scoped to its repo and pointing at the others by `path:line` instead of copying them.
+Feature names never start with `_`.
+
+### ICM layout
+
+The folders follow ICM, Interpretable Context Methodology ([paper](https://arxiv.org/abs/2603.16021), reference
+implementation [RinDig/Interpretable-Context-Methodology](https://github.com/RinDig/Interpretable-Context-Methodology)).
+local-context takes the idea and implements it in its own workflow; it is not a copy of that repo. Each part made of
+several pieces is a folder starting with `_`, one file per piece, and a short `STATE.md` index in each. An agent reads
+down the layers (skill, `ICM.md`, the indexes, then only the piece files it needs) and stops when it has what it needs.
+`STATE.md` holds every status (task, question, review mark); files are never renamed, order lives in the index.
+
+Measured cost against 2.0.0 (instructions plus the record read):
+
+- Small features (under about 10–15 tasks or 15 decisions): about even with 2.0.0, and 4–20% more than legacy mode.
+- Large features: 14–38% fewer tokens on `continue`, `business-questions` and `tidy`.
+- The navigator: about 4% fewer tokens on a small feature, about 20% fewer on a large one.
+- Converting a folder is a one-time cost.
+
+```
+.local_context/<feature>/
+  _current/STATE.md                state as of a date, goal, scope, where it stands, RESUME HERE
+  _current/_decisions/STATE.md     | # | File | Decision | Date | Who |
+  _current/_decisions/01_<slug>.md
+  _current/_questions/STATE.md     | # | File | Question | Status |   open | answered <date> → decision
+  _current/_questions/01_<slug>.md
+  _implementation_plan/STATE.md    START HERE, | # | File | Task | Depends on | Status |, Blocked, Verification, YAGNI
+  _implementation_plan/01_<slug>.md
+  _archive/STATE.md                | Entry | Commits | Title |   oldest first; read the tail
+  _archive/2026_11_16/1.md
+  _business/STATE.md               | File | Theme | Rules | Last changed | Summary |
+  _business/<theme>.md
+  _crm/STATE.md                    map header, | # | File | Group | Status |
+  _crm/01_<slug>.md
+```
+
+The contract lives in `skills/local-context-new/`: [`ICM.md`](skills/local-context-new/ICM.md) (layers, paths, rules),
+`ICM_OPS.md` (operations), `ICM_FORMATS.md` (every format), both read one section at a time, and `ICM_CONVERT.md`
+(converting a flat folder, read only then).
 
 ## Skills
 
@@ -30,13 +68,13 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 
 | Skill | What it does |
 |---|---|
-| `local-context-new <description>` | Creates `.local_context/<feature>/` with the three files filled in from your description |
+| `local-context-new <description>` | Creates `.local_context/<feature>/` in the ICM layout, filled in from your description |
 | `local-context-continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
-| `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from CURRENT into ARCHIVE word for word (checked with `cmp`), and makes the plan match git |
-| `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `BUSINESS.md` |
-| `local-context-code-review-mapping [feature \| free text]` | Writes `CRM.md`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
-| `local-context-code-review-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `CRM.md` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `<xplain> … </xplain>` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
+| `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from the current state into the archive word for word (checked with `cmp`), makes the plan match git, and checks every `STATE.md` index against its folder |
+| `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `_business/` |
+| `local-context-code-review-mapping [feature \| free text]` | Writes `_crm/`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
+| `local-context-code-review-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `_crm/` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `<xplain> … </xplain>` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
 
@@ -63,7 +101,7 @@ They work across a container repo and its submodules, e.g. a backend and a front
 /local-context:local-context-code-review-mapping <feature>
 ```
 
-Writes `.local_context/<feature>/CRM.md`: every file the feature's branches change, grouped by the
+Writes `.local_context/<feature>/_crm/`: every file the feature's branches change, grouped by the
 capability it implements (each repo's files side by side under the repo name, specs with the code they test), in
 reading order, foundations first. A group with many files (around 10 in one repo) is split into subgroups when its
 files hold ideas that read separately (e.g. `Report templates / CSV export`); one idea stays one group. Lockfiles,
@@ -89,7 +127,7 @@ The `<crn>` tag you write in the code (step 5 below) is a different thing: crn =
    group's explanation, so you can run it again yourself. Your own checkouts are not touched.
 3. Below the group's file lists it explains, per repo, what the group's changes do as the code runs (behaviour, flow,
    business rules), with the files involved and key spots as `<repo>/path:line`, as the map writes them. It writes
-   this from the diff and checks it against `BUSINESS.md` and `IMPLEMENTATION_PLAN.md`, flagging wrong patterns,
+   this from the diff and checks it against the feature's business rules and plan, flagging wrong patterns,
    broken or missed rules and surprising behaviour. A mechanical group gets one line per change: what changed and why.
    You review from the explanation and open the code only to verify. In the worktrees, an `<xplain> … </xplain>`
    comment sits above each block of functions, classes or constants that share a domain concept, saying what it is
@@ -136,8 +174,8 @@ The `<crn>` tag you write in the code (step 5 below) is a different thing: crn =
      chat with its `file:line`. Each `<crn>` is done or answered, then removed. Only comments you add during the
      review count.
 6. Say OK: the review edits are applied to your checkout of the feature branch, uncommitted, and it asks whether to
-   open the next group. Nothing is ever committed or pushed for you. The group's heading in `CRM.md` gets
-   ` ✅ reviewed`, so the next session (tomorrow, say) starts at the first group not yet reviewed. Regenerating
+   open the next group. Nothing is ever committed or pushed for you. The group's Status in `_crm/STATE.md` becomes
+   `✅ reviewed`, so the next session (tomorrow, say) starts at the first group not yet reviewed. Regenerating
    the map clears the marks.
 7. After each group it asks whether to remove the review worktrees (it names their paths), e.g. when you stop
    for the day; the next group recreates them. After the last group it asks again if they are still there.
@@ -190,8 +228,27 @@ npx skills update                                               # later, to upda
 ```
 
 Leave out `-g` to install into the current project only. Install all the skills together:
-`local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
+the skills read `local-context-new/ICM*.md`, and `local-context-start` and `local-context-crn` read their sibling
+skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
+
+### Upgrading to 3.0.0
+
+`.local_context/<feature>/` now uses the ICM layout (see above) instead of the flat `CURRENT.md`,
+`IMPLEMENTATION_PLAN.md`, `ARCHIVE.md`, `BUSINESS.md` and `CRM.md`.
+
+- Update **every** agent install of the plugin (Claude Code, Codex, …) before using it on a converted folder: an
+  older install would write flat files next to the `_` folders. The skills spot such a mixed folder and offer to fold
+  the flat files in.
+- The first time a skill opens a flat folder, it asks once: **Convert (Recommended)** or **Keep old layout**. Keep
+  writes a `.no_icm` file in the folder and the skills keep using the flat files there; delete `.no_icm` to be asked
+  again. Dismissing the question keeps the flat files for that run only. Several folders (sub-features, other repos)
+  are asked in one question.
+- Converting makes no backup: every piece is cut from the flat file with `sed` and proved with `cmp`; a failed
+  proof aborts the conversion and leaves the folder untouched. Pointers to the old files (`CURRENT.md`, …) are
+  rewritten in the live files, sibling folders included. Archive entries are never edited: the archive index gets a
+  legend mapping the old names to the new paths. An archive entry records the conversion.
+- If your project's `CLAUDE.md` names the flat files, the question points it out; update those lines after converting.
 
 ### Upgrading to 2.0.0
 
@@ -217,6 +274,10 @@ The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:lo
 skills/
   local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping,
                                            # code-review-navigator, crn (alias)
+  local-context-new/ICM.md                 # the .local_context/<feature>/ contract: layers, paths, rules
+  local-context-new/ICM_OPS.md             # operations and the legacy layout, read by section
+  local-context-new/ICM_FORMATS.md         # every file and row format, read by section
+  local-context-new/ICM_CONVERT.md         # converting a flat pre-3.0.0 folder, read only then
   local-context-code-review-navigator/scripts/crn.sh  # review worktrees: prepare, stage, crn, apply, cleanup
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
 ```

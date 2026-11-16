@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## 3.0.0 - 2026-11-16
+
+- Changed
+  - Feature folders now use the ICM layout (Interpretable Context Methodology). Each multi-part file is a `_` folder
+    with one file per piece and a `STATE.md` index: `_current/` (with `_decisions/` and `_questions/`), `_business/`
+    (one file per theme), `_implementation_plan/` (one file per task), `_archive/<YYYY_MM_DD>/<N>.md` and `_crm/` (one
+    file per review group). Before, each was one growing file: `CURRENT.md`, `BUSINESS.md`, `IMPLEMENTATION_PLAN.md`,
+    `ARCHIVE.md`, `CRM.md`. `local-context-new` creates every new folder this way.
+  - Skills read the `STATE.md` indexes first and open only the pieces they need. On a large feature (about 25 tasks,
+    30 decisions) this cuts tokens by 14–38% on `continue`, `business-questions` and `tidy`, and by about 20% on the
+    navigator. A small feature costs about the same as 2.0.0.
+  - Task status, the review mark (`✅ reviewed`) and question status now live only in the `STATE.md` tables. Before,
+    they were suffixes on the headings.
+  - The first time a skill opens a 2.0.0 flat folder, it asks once: "Convert (Recommended)" or "Keep old layout".
+    Keep writes a `.no_icm` file and the skills keep using the flat files in that folder; delete `.no_icm` to be asked
+    again. Convert makes no backup: every piece is proved with `cmp` against the flat file, the flat files are deleted
+    only after every proof passes, and a failed proof leaves the folder untouched. Pointers in live files are
+    rewritten to the new paths; archive entries are never edited, and `_archive/STATE.md` gets a line mapping the old
+    file names to the new ones.
+  - `local-context-tidy` also checks that every `STATE.md` index lists exactly the files in its folder and that its
+    prose stays under 80 lines.
+  - `crn.sh` takes `.local_context/<feature>/_crm` as the map, or `CRM.md` in a `.no_icm` folder. A wrong path now
+    stops with "no map: …; this folder uses the ICM layout: pass …/_crm" or "not a map folder: …; pass …/_crm".
+  - Every agent install (Claude Code, Codex, …) must be updated to 3.0.0 before use on a converted folder: an older
+    install writes flat files next to the `_` folders. The skills spot such a mixed folder and offer to fold the flat
+    files in.
+
 ## 2.0.0 - 2026-11-13
 
 - Changed
