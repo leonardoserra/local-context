@@ -2,6 +2,40 @@
 
 All notable changes to this project are documented in this file.
 
+## 3.1.0 - 2026-11-16
+
+- Added
+  - New skill `local-context-icm-migrate` migrates a flat pre-3.0.0 feature folder (`CURRENT.md`,
+    `IMPLEMENTATION_PLAN.md`, `ARCHIVE.md`, `BUSINESS.md`, `CRM.md`) to the ICM layout without asking anything. It
+    also migrates every folder the feature spans: the parent, sub-features and same-name folders in sibling repos and
+    submodules. Run it from a skill's layout check or directly as `local-context-icm-migrate [feature_name]`.
+  - The migration decides every unusual shape by fixed rules instead of stopping to ask:
+    - Task headings with ids like `P3b` or out of order: files are numbered by position and the id stays in the title.
+    - Any task status (✅, 📝, 🟡, ⏸, `done-uncommitted`, "superseded by …", or unknown text) moves into the plan
+      table.
+    - Wrapped `**Depends on**` lines move whole into the Depends on column.
+    - Session logs, task outcomes and reference tables between tasks go to an archive entry, the task file or the
+      closing part of the plan. They never become task rows.
+    - Decision sections with other headings ("Decisions (<who>, <date>)", "Agreed", "Settled") become decision files.
+    - A `BUSINESS.md` with no themes becomes `_business/STATE.md` with an empty themes table.
+    - An `ARCHIVE.md` with no dated heading is kept whole.
+  - Only a failed `cmp` proof stops a folder, and that folder is left untouched. The report names the proof and its
+    output.
+  - Pointers are rewritten inside each folder, and then across folders once all are migrated. References to a folder
+    still on the flat layout are left as they are.
+  - The migration ends with one report per run. It lists the pieces and proofs per folder, every rule-based decision,
+    and the pointers changed or left. It also lists follow-ups: `STATE.md` files over the 80-line limit (run
+    `local-context-tidy`) and lines in `CLAUDE.md` / `CLAUDE.local.md` / `AGENTS.md` that still name flat files.
+    Those files are never edited.
+- Changed
+  - On a flat folder, every skill now asks one question: "Migrate (Recommended)" or "Keep old layout". It names every
+    folder of the feature at once, not one question per folder. Migrate hands off to `local-context-icm-migrate`, then
+    the skill goes on with its own work on the ICM layout. Keep still writes `.no_icm`.
+  - Folders that mix flat files and `_` folders are still offered Migrate, which folds the flat files in. Keep stops
+    the run there and writes nothing, as before.
+  - `local-context-new/ICM_CONVERT.md` is deleted, not left as a stub. The migration rules now live in
+    `local-context-icm-migrate/`, which an agent reads only when it migrates. `ICM.md` keeps a one-line pointer.
+
 ## 3.0.0 - 2026-11-16
 
 - Changed
