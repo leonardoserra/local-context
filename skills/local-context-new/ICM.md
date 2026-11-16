@@ -21,3 +21,5 @@ Read only the section needed, next to this file: `sed -n '/^## <op>/,/^## /p' IC
 add, question answer, plan add task, plan mark, archive add, archive find, business rule set);
 `sed -n '/^## F: <name>/,/^## F: /p' ICM_FORMATS.md` (pieces: file and row shapes; current, decisions questions,
 plan, archive, business, map, crm).
+
+Flat layout found (`CURRENT.md`, …) → ICM_OPS.md § layout check: ask once, then `local-context-icm-migrate`.

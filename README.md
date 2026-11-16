@@ -32,7 +32,7 @@ Measured cost against 2.0.0 (instructions plus the record read):
 - Small features (under about 10–15 tasks or 15 decisions): about even with 2.0.0, and 4–20% more than legacy mode.
 - Large features: 14–38% fewer tokens on `continue`, `business-questions` and `tidy`.
 - The navigator: about 4% fewer tokens on a small feature, about 20% fewer on a large one.
-- Converting a folder is a one-time cost.
+- Migrating a folder is a one-time cost.
 
 ```
 .local_context/<feature>/
@@ -52,8 +52,8 @@ Measured cost against 2.0.0 (instructions plus the record read):
 ```
 
 The contract lives in `skills/local-context-new/`: [`ICM.md`](skills/local-context-new/ICM.md) (layers, paths, rules),
-`ICM_OPS.md` (operations), `ICM_FORMATS.md` (every format), both read one section at a time, and `ICM_CONVERT.md`
-(converting a flat folder, read only then).
+`ICM_OPS.md` (operations), `ICM_FORMATS.md` (every format), both read one section at a time. Migrating a flat folder
+lives in its own skill, `local-context-icm-migrate`, read only when a folder is migrated.
 
 ## Skills
 
@@ -74,6 +74,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from the current state into the archive word for word (checked with `cmp`), makes the plan match git, and checks every `STATE.md` index against its folder |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `_business/` |
 | `local-context-code-review-mapping [feature \| free text]` | Writes `_crm/`: every file the feature's branches change (across a container repo and its submodules), grouped by functionality with each repo's files together and ordered for reading, so a merge request too large to review file by file can be read one chunk at a time. Checks that every changed file is mapped |
+| `local-context-icm-migrate [feature]` | Migrates a flat pre-3.0.0 feature folder to the ICM layout, with every folder the feature spans (parent, sub-features, same-name folders in other repos), without asking anything: every piece cut with `sed` and proved with `cmp`, every unusual shape decided by fixed rules, pointers rewritten, one report at the end. The other skills run it when you pick **Migrate** in their layout check |
 | `local-context-code-review-navigator <feature> [group] [ide]` (alias `local-context-crn`) | Reviews `_crm/` one group at a time, like a small merge request: explains per repo what the group's changes do (files and `path:line` included) and flags wrong patterns or business-rule mismatches, adds `<xplain> … </xplain>` reading notes in the code, then opens the IDE you name (it finds its launcher) in one window on a throwaway worktree per repo where only that group's changes show, printing that command for you to copy. Answers questions, makes edits and handles `<crn> … </crn>` (code-review-note) comments you leave in the code, then on your OK applies the edits (uncommitted) to the feature branch checkout and opens the next group |
 
 Examples (Claude Code):
@@ -228,8 +229,8 @@ npx skills update                                               # later, to upda
 ```
 
 Leave out `-g` to install into the current project only. Install all the skills together:
-the skills read `local-context-new/ICM*.md`, and `local-context-start` and `local-context-crn` read their sibling
-skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
+the skills read `local-context-new/ICM*.md`, their layout checks run `local-context-icm-migrate`, and
+`local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
 ### Upgrading to 3.0.0
@@ -240,15 +241,19 @@ from invoking it on its own.
 - Update **every** agent install of the plugin (Claude Code, Codex, …) before using it on a converted folder: an
   older install would write flat files next to the `_` folders. The skills spot such a mixed folder and offer to fold
   the flat files in.
-- The first time a skill opens a flat folder, it asks once: **Convert (Recommended)** or **Keep old layout**. Keep
-  writes a `.no_icm` file in the folder and the skills keep using the flat files there; delete `.no_icm` to be asked
-  again. Dismissing the question keeps the flat files for that run only. Several folders (sub-features, other repos)
-  are asked in one question.
-- Converting makes no backup: every piece is cut from the flat file with `sed` and proved with `cmp`; a failed
-  proof aborts the conversion and leaves the folder untouched. Pointers to the old files (`CURRENT.md`, …) are
-  rewritten in the live files, sibling folders included. Archive entries are never edited: the archive index gets a
-  legend mapping the old names to the new paths. An archive entry records the conversion.
-- If your project's `CLAUDE.md` names the flat files, the question points it out; update those lines after converting.
+- The first time a skill opens a flat folder, it asks one question: **Migrate (Recommended)** or **Keep old
+  layout**. Keep writes a `.no_icm` file in the folder and the skills keep using the flat files there; delete
+  `.no_icm` to be asked again. Dismissing the question keeps the flat files for that run only. Several folders
+  (sub-features, other repos) are listed in the same question.
+- Migrate runs `local-context-icm-migrate`, which asks nothing more: odd shapes (task ids like `P3b`, statuses in
+  headings, session logs inside the plan, decision sections under other names) are decided by fixed rules and
+  listed in its report.
+- Migrating makes no backup: every piece is cut from the flat file with `sed` and proved with `cmp`; a failed
+  proof aborts that folder and leaves it untouched. Pointers to the old files (`CURRENT.md`, …) are rewritten in
+  the live files, sibling folders included. Archive entries are never edited: the archive index gets a legend
+  mapping the old names to the new paths. An archive entry records the migration.
+- If your project's `CLAUDE.md` names the flat files, the question and the report point it out; update those lines
+  after migrating.
 
 ### Upgrading to 2.0.0
 
@@ -273,11 +278,11 @@ The skills were renamed in 0.3.0: `/local-context:new` is now `/local-context:lo
   marketplace.json     # makes this repo its own marketplace
 skills/
   local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping,
-                                           # code-review-navigator, crn (alias)
+                                           # code-review-navigator, crn (alias), icm-migrate
   local-context-new/ICM.md                 # the .local_context/<feature>/ contract: layers, paths, rules
-  local-context-new/ICM_OPS.md             # operations and the legacy layout, read by section
+  local-context-new/ICM_OPS.md             # operations, the layout check and the legacy layout, by section
   local-context-new/ICM_FORMATS.md         # every file and row format, read by section
-  local-context-new/ICM_CONVERT.md         # converting a flat pre-3.0.0 folder, read only then
+  local-context-icm-migrate/STEPS.md       # migrating a flat pre-3.0.0 folder: per-file cuts and rules, read by section
   local-context-code-review-navigator/scripts/crn.sh  # review worktrees: prepare, stage, crn, apply, cleanup
   local-context-<name>/agents/openai.yaml  # Codex: no implicit invocation
 ```
