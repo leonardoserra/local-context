@@ -73,7 +73,8 @@ git -C <repo> log --oneline origin/<base>..origin/<feature_branch>
 - Record for the header: merge base (`git -C <repo> merge-base origin/<base> origin/<feature_branch>`) and head SHA
   (`git -C <repo> rev-parse origin/<feature_branch>`), both short. Head is always the fetched remote branch.
 - The user's checkout: `git -C <repo> rev-parse HEAD` differs from the full Head SHA → warn in step 7 (repo, its
-  branch and short SHA): the navigator applies review edits onto that checkout, which then holds other code.
+  branch and short SHA): the navigator reviews each group on that checkout's current HEAD and applies the review
+  edits there, so the review shows the checkout's code, not Head's.
 - Prefix every path with the repo's path from the project root (`<submodule>/app/...`), so each opens from the root.
   The root repo's files keep their plain path; a submodule pointer change is one more file.
 - Save the full prefixed list, sorted, one path per line, to `<s>/changed.txt` (`<s>` = the session scratchpad, or

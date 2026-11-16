@@ -6,13 +6,20 @@
 #   crn.sh list    <map>                  numbered group headings (reviewed ones end with " ✅ reviewed")
 #   crn.sh reviewed <map> <group>         marks the group reviewed (ICM: its Status cell; legacy: its heading), so a
 #                                         later session skips it
-#   crn.sh prepare <map> <group>          per repo of the group: review worktree with every file at the mapped head;
-#                                         its HEAD = a commit of the head tree with the group's files at the merge base,
-#                                         so the staged diff is the group's alone; prints repo<TAB>worktree
+#   crn.sh prepare <map> <group>          per repo of the group: review worktree with every file at the HEAD of the
+#                                         repo's checkout, which must be on the map's branch (not the map's Head: the
+#                                         branch moves during a review); its HEAD = a commit of that tree with the
+#                                         group's files at the merge base, so the staged diff is the group's alone;
+#                                         prints repo<TAB>worktree; on stderr, per repo of the map on its branch:
+#                                         "<repo>: HEAD <sha> (map Head <sha>)", "<repo>: uncommitted changes, not in
+#                                         the review", "<repo>: merge base moved: regenerate the map" when the base
+#                                         branch was merged or rebased in, and "<repo>: in no group: <path>" per file
+#                                         changed since the merge base that no group lists
 #   crn.sh crn     <map>                  <crn> (code-review-note) comments in the review edits, file:line:text
 #   crn.sh status  <map>                  per review worktree: repo<TAB>worktree, then one line per pending review edit
 #   crn.sh apply   <map>                  review edits -> each repo's checkout (xplain notes stripped), then drops them
-#                                         from the worktrees
+#                                         from the worktrees; a checkout whose HEAD moved since prepare gets a 3-way
+#                                         merge only (git apply --3way, which also stages the applied files)
 #   crn.sh cleanup <map>                  removes the review worktrees, xplain notes and all
 #
 # Baseline = the tree written by prepare (<worktree>.tree). Review edits = worktree + untracked files vs baseline,
@@ -77,6 +84,15 @@ group_paths() {
   else
     awk -v n="$1" '/^### /{i++} i==n && /^  - /{sub(/^  - /,""); print}' "$map"
   fi
+}
+
+on_branch() { [ "$(git -C "$(repo_dir "$1")" rev-parse --abbrev-ref HEAD 2>/dev/null)" = "$(row_field "$1" 3)" ]; }
+
+# every path any group lists, a rename's old path too, without the (deleted) / (renamed from …) suffix
+mapped_paths() {
+  if [ -d "$map" ]; then cat "$map"/*.md; else cat "$map"; fi |
+    awk '/^  - /{sub(/^  - /, ""); sub(/ \(deleted\)$/, ""); if (match($0, / \(renamed from .*\)$/)) {
+      print substr($0, RSTART + 15, RLENGTH - 16); $0 = substr($0, 1, RSTART - 1)}; print}'
 }
 
 existing_worktrees() { local name; for name in $(repo_names); do [ -f "$worktrees_root/$name.tree" ] && echo "$name"; done; true; }
@@ -153,13 +169,31 @@ case $command in
     done
     repos=$(printf '%s\n' "$paths" | while IFS= read -r path; do repo_of_path "$path"; done | sort -u)
     for repo in $repos; do
-      merge_base=$(row_field "$repo" 5)
-      head=$(row_field "$repo" 6)
-      [ -n "$merge_base" ] && [ -n "$head" ] || { echo "repo $repo not in the map header" >&2; exit 1; }
+      [ -n "$(row_field "$repo" 5)" ] || { echo "repo $repo not in the map header" >&2; exit 1; }
+      on_branch "$repo" || { echo "$(repo_dir "$repo") is not on $(row_field "$repo" 3)" >&2; exit 2; }
+    done
+    mapped=$(mapped_paths)
+    for name in $(repo_names); do
+      checkout=$(repo_dir "$name")
+      [ -d "$checkout" ] || continue
+      on_branch "$name" || continue
+      merge_base=$(row_field "$name" 5)
+      echo "$name: HEAD $(git -C "$checkout" rev-parse --short HEAD) (map Head $(row_field "$name" 6))" >&2
+      [ -z "$(git -C "$checkout" status --porcelain --untracked-files=no)" ] || echo "$name: uncommitted changes, not in the review" >&2
+      base=origin/$(row_field "$name" 4)
+      if git -C "$checkout" rev-parse -q --verify "$base" >/dev/null &&
+        [ "$(git -C "$checkout" merge-base "$base" HEAD)" != "$(git -C "$checkout" rev-parse "$merge_base")" ]; then
+        echo "$name: merge base moved: regenerate the map" >&2
+      fi
+      git -C "$checkout" -c core.quotePath=false diff --name-only --no-renames "$merge_base" HEAD |
+        while IFS= read -r path; do
+          [ "$name" = "$root_name" ] || path=$name/$path
+          grep -qxF -- "$path" <<< "$mapped" || echo "$name: in no group: $path" >&2
+        done
     done
     for repo in $repos; do
       merge_base=$(row_field "$repo" 5)
-      head=$(row_field "$repo" 6)
+      head=$(git -C "$(repo_dir "$repo")" rev-parse HEAD)
       worktree=$worktrees_root/$repo
       if [ -d "$worktree" ]; then
         git -C "$worktree" checkout -q -f --detach "$head"
@@ -191,7 +225,7 @@ case $command in
     done
     ;;
 
-  # every file is at the mapped head after prepare: a no-op, kept for callers of the older protocol
+  # every file is at the checkout's HEAD after prepare: a no-op, kept for callers of the older protocol
   stage) ;;
 
   crn)
@@ -214,6 +248,7 @@ case $command in
 
   apply)
     to_apply=
+    moved=
     for name in $(existing_worktrees); do
       worktree=$worktrees_root/$name
       [ -n "$(pending_edits "$worktree")" ] || continue
@@ -221,8 +256,8 @@ case $command in
       if git -C "$worktree" diff -U0 "$(cat "$worktree.tree")" | grep -q '^+.*<crn>'; then
         echo "<crn> comments left in $worktree: resolve them first" >&2; exit 2
       fi
-      branch=$(row_field "$name" 3)
-      [ "$(git -C "$(repo_dir "$name")" rev-parse --abbrev-ref HEAD)" = "$branch" ] || { echo "$(repo_dir "$name") is not on $branch" >&2; exit 2; }
+      on_branch "$name" || { echo "$(repo_dir "$name") is not on $(row_field "$name" 3)" >&2; exit 2; }
+      [ "$(git -C "$(repo_dir "$name")" rev-parse HEAD)" = "$(git -C "$worktree" rev-parse HEAD^)" ] || moved="$moved $name"
       to_apply="$to_apply $name"
     done
     for name in $to_apply; do
@@ -236,8 +271,12 @@ case $command in
         done
       rm -f "$worktree.strip"
       git -C "$worktree" diff --binary "$(cat "$worktree.tree")" > "$worktree.patch"
-      git -C "$target" apply "$worktree.patch" || git -C "$target" apply --3way "$worktree.patch" \
-        || { echo "$name: not applied, review edits kept, patch kept: $worktree.patch" >&2; exit 3; }
+      case " $moved " in
+        *" $name "*)
+          echo "$name: $target moved since prepare (review built on $(git -C "$worktree" rev-parse --short HEAD^)): 3-way merge" >&2
+          git -C "$target" apply --3way "$worktree.patch" ;;
+        *) git -C "$target" apply "$worktree.patch" || git -C "$target" apply --3way "$worktree.patch" ;;
+      esac || { echo "$name: not applied cleanly (check conflict markers), review edits kept, patch kept: $worktree.patch" >&2; exit 3; }
       git -C "$worktree" diff --name-only "$(cat "$worktree.tree")" | sed "s|^|$name: |"
       git -C "$worktree" read-tree --reset -u "$(cat "$worktree.tree")"
       git -C "$worktree" clean -fdq

@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## 4.0.2 - 2026-11-16
+
+- Changed
+  - The code review worktree (`local-context-crn`) now builds each group on the checkout's current HEAD, not on the
+    head frozen in the map. Fixes committed after an earlier group (and any follow-up commit) are in the next group's
+    review. Before, later groups opened on the old head: stale code, earlier fixes missing, and review edits made on
+    code the branch no longer had.
+  - `prepare` refuses a checkout that is not on the map's branch, warns about uncommitted changes (they are not in the
+    review), lists files changed after the map was written that belong to no group ("in no group"), and says "merge
+    base moved: regenerate the map" when the base branch was merged or rebased into the feature.
+  - A checkout that moved after `prepare` no longer blocks the review edits. `apply` merges them onto the new HEAD
+    with a 3-way merge, which stages the applied files. On conflicts, the agent shows both sides of each one, asks
+    the user how to resolve it, writes the resolution, then applies the remaining repos. Before, the only way out was
+    discarding the edits.
+  - Branch moves during a review no longer mean "regenerate the map": only a moved merge base or groups that no longer
+    match do.
+  - Apply or discard pending review edits made with a version older than 4.0.1 before upgrading.
+- Fix
+  - The "in no group" report no longer lists almost every file on a large map, and no longer lists paths with
+    non-ASCII characters (e.g. `ü.rb`).
+
 ## 4.0.1 - 2026-11-16
 
 - Changed
