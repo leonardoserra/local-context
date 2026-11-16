@@ -28,12 +28,13 @@ text with `sed` / `cat` (never retype), prove every move with `cmp`; GNU- and BS
   it), recommending the largest or most recently modified, and why.
 - `.local_context` may be a symlink (worktrees): resolve it, write to the real path.
 
-**Layout check**, before reading `F` or another feature folder the run writes: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`;
-`<n>` = `<this skill folder>/../local-context-new`. No flat file (`CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
-`BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: read `<n>/ICM.md`. `.no_icm` and no `_`
-folder → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Otherwise →
-`sed -n '/^## layout check/,/^## /p' <n>/ICM_OPS.md` first: one question, migrate
-(`local-context-icm-migrate`) or keep the old layout.
+**Layout check**, before reading `F` or another feature folder the run writes:
+`cat F/.icm 2>/dev/null; ls -A F` (glob-free: zsh aborts on an unmatched glob); `<n>` =
+`<this skill folder>/../local-context-new`. `true` → ICM: read `<n>/ICM.md`; a flat file there too (`CURRENT`,
+`IMPLEMENTATION_PLAN`, `ARCHIVE`, `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`: an older install wrote it) →
+§ layout check. `false` and no `_current` → legacy: `sed -n '/^## legacy/,/^## /p' <n>/ICM_OPS.md`. Anything else →
+`sed -n '/^## layout check/,/^## /p' <n>/ICM_OPS.md` first: it writes `.icm`, asking at most one question,
+migrate (`local-context-icm-migrate`) or keep the old layout.
 A migration runs first (`local-context-icm-migrate`), with its own proofs; then tidy runs on the ICM folder.
 
 ## 1 — Back up

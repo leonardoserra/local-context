@@ -49,6 +49,7 @@ Measured cost against 2.0.0 (instructions plus the record read):
   _business/<theme>.md
   _crm/STATE.md                    map header, | # | File | Group | Status |
   _crm/01_<slug>.md
+  .icm                             true (ICM) or false (old flat layout kept); written on the first run
 ```
 
 The contract lives in `skills/local-context-new/`: [`ICM.md`](skills/local-context-new/ICM.md) (layers, paths, rules),
@@ -233,17 +234,29 @@ the skills read `local-context-new/ICM*.md`, their layout checks run `local-cont
 `local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
+### Upgrading to 4.0.0
+
+The `.no_icm` file is replaced by `.icm`.
+
+- Update **every** agent install of the plugin (Claude Code, Codex, …) to 4.0.0: a 3.x install does not read
+  `.icm`, and it asks again about folders kept on the old layout.
+- Each feature folder holds an `.icm` file: `true` (ICM) or `false` (old flat layout kept). The skills read it and
+  no longer inspect the folder, except `local-context-tidy`, which looks for flat files an older install wrote. A
+  folder without it is checked once: an ICM folder gets `true` silently; a flat folder gets the one question below.
+  Migrate writes `true`, Keep writes `false`; delete `.icm` to be asked again. Dismissing the question keeps the
+  flat files for that run only and writes nothing.
+- A `.no_icm` file from 3.x is converted to `.icm` on sight, then deleted.
+
 ### Upgrading to 3.0.0
 
 `.local_context/<feature>/` now uses the ICM layout (see above) instead of the flat `CURRENT.md`,
 `IMPLEMENTATION_PLAN.md`, `ARCHIVE.md`, `BUSINESS.md` and `CRM.md`.
 
 - Update **every** agent install of the plugin (Claude Code, Codex, …) before using it on a converted folder: an
-  older install would write flat files next to the `_` folders. The skills spot such a mixed folder and offer to fold
-  the flat files in.
+  older install would write flat files next to the `_` folders. `local-context-tidy` spots such a mixed folder and
+  offers to fold the flat files in.
 - The first time a skill opens a flat folder, it asks one question: **Migrate (Recommended)** or **Keep old
-  layout**. Keep writes a `.no_icm` file in the folder and the skills keep using the flat files there; delete
-  `.no_icm` to be asked again. Dismissing the question keeps the flat files for that run only. Several folders
+  layout**. Keep leaves the flat files in use there (4.0.0 records the choice in `.icm`). Several folders
   (sub-features, other repos) are listed in the same question.
 - Migrate runs `local-context-icm-migrate`, which asks nothing more: odd shapes (task ids like `P3b`, statuses in
   headings, session logs inside the plan, decision sections under other names) are decided by fixed rules and

@@ -68,11 +68,9 @@ the map's merge base, with the group's files checked out from the map's head SHA
 - Feature: as `local-context-continue` § 1 — a name or path (any case, `-`/`_`, unique prefix) → use it, say which; a
   phrase → infer, confirm with `AskUserQuestion` (or a plain question), inferred first, `(Recommended)`; nothing →
   folders by recency (skip `_*`), ask. No `.local_context/` → say so, stop.
-- **Layout check**: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`. No `CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
-  `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md` and no `.no_icm` → ICM, map `F/_crm`; `.no_icm` and no `_` folder →
-  legacy, map `F/CRM.md`; else →
-  `sed -n '/^## layout check/,/^## /p' <this skill folder>/../local-context-new/ICM_OPS.md` first: one question,
-  migrate (`local-context-icm-migrate`) or keep the old layout.
+- **Layout check**: `cat F/.icm 2>/dev/null; ls -d F/_current 2>/dev/null`. `true` → ICM, map `F/_crm`; `false` and
+  no `_current` → legacy, map `F/CRM.md`; anything else → `sed -n '/^## layout check/,/^## /p' <this skill folder>/../local-context-new/ICM_OPS.md` first: it writes
+  `.icm`, asking at most one question, migrate (`local-context-icm-migrate`) or keep the old layout.
 - No map → tell the user to run `local-context-code-review-mapping <feature_name>` first, and stop. In a legacy
   folder, a `CODE_REVIEW_MAPPING.md` instead is the same map under its name before 2.0.0: say so, and offer to
   regenerate it (recommended) or rename it to `CRM.md`.

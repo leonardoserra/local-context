@@ -33,12 +33,11 @@ infer, confirm with `AskUserQuestion` (or a plain question), inferred first, `(R
 recency (skip `_*`), ask. No `.local_context/` → say so, stop. Root: `git rev-parse --show-toplevel`, else cwd;
 `.local_context` may be a symlink (worktrees): write through it.
 
-**Layout check**, before reading `F`: `ls -d F/.no_icm F/_* F/*.md 2>/dev/null`. No flat file (`CURRENT`,
-`IMPLEMENTATION_PLAN`, `ARCHIVE`, `BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`) and no `.no_icm` → ICM: the map is
-`F/_crm`, current state and plan the `STATE.md` of `_current/`, `_implementation_plan/`. `.no_icm` and no `_` folder →
-legacy: `F/CRM.md`, `CURRENT.md`, `IMPLEMENTATION_PLAN.md`. Otherwise →
-`sed -n '/^## layout check/,/^## /p' <this skill folder>/../local-context-new/ICM_OPS.md` first: one question, migrate
-(`local-context-icm-migrate`) or keep the old layout.
+**Layout check**, before reading `F`: `cat F/.icm 2>/dev/null; ls -d F/_current 2>/dev/null`. `true` → ICM: the map
+is `F/_crm`, current state and plan the `STATE.md` of `_current/`, `_implementation_plan/`. `false` and no `_current`
+→ legacy: `F/CRM.md`, `CURRENT.md`, `IMPLEMENTATION_PLAN.md`. Anything else →
+`sed -n '/^## layout check/,/^## /p' <this skill folder>/../local-context-new/ICM_OPS.md` first: it writes `.icm`,
+asking at most one question, migrate (`local-context-icm-migrate`) or keep the old layout.
 
 ## 2 — Find the repos, branches and base
 
