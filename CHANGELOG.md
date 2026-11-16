@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## 4.0.0 - 2026-11-16
+
+- Changed
+  - Each feature folder now records its layout in a `.icm` file: `true` for the ICM layout, `false` for the old flat
+    layout. Before, only a kept flat folder had a marker, `.no_icm`. The skills read `.icm` and skip the layout check
+    on every later run. `local-context-new` and `local-context-icm-migrate` write `true`. "Keep old layout" writes
+    `false`.
+  - A folder without `.icm` gets the layout check once, then `.icm` is written. A 3.x ICM folder gets `true` with no
+    question. A 3.x `.no_icm` folder gets `false`, and its `.no_icm` is deleted. A `.no_icm` beside `_` folders with
+    no flat file now becomes ICM silently. Before, it asked "Delete .no_icm" / "Keep it".
+  - Delete `.icm` to be asked again. Before, it was `.no_icm`.
+  - `.icm` = `false` next to a `_current/` folder (for example, an older install migrated it) sends the skill back to
+    the layout check instead of reading flat files that are gone.
+  - `local-context-tidy` still looks for flat files that an older install wrote into a `true` folder, and offers to
+    fold them in. The other skills no longer inspect the folder.
+  - Every agent install (Claude Code, Codex, …) must be updated to 4.0.0. A 3.x install does not read `.icm` and asks
+    again about every folder kept on the old layout.
+- Fix
+  - The layout check no longer misses flat files when the shell is zsh. Its `ls -d F/_* F/*.md` aborted with "no
+    matches found" and listed nothing, so a flat folder could be taken as ICM. It now uses `ls -A`.
+  - `crn.sh` no longer suggests passing the same map path that was just reported missing. It now says "run
+    local-context-code-review-mapping first" and suggests `_crm` or `CRM.md` only when that map exists.
+
 ## 3.1.0 - 2026-11-16
 
 - Added
