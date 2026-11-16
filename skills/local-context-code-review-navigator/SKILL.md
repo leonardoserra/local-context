@@ -38,12 +38,14 @@ through the `local-context-crn` alias. Run the script from the project root (`gi
 
 Each repo of a group gets one detached worktree, created on first use and reused for later groups, at
 `~/.cache/local-context-crn/<project>/<feature_name>/<repo>` (override with `LOCAL_CONTEXT_CRN_WORKTREES`). Its working
-tree and index hold the map's head SHA, every file; its detached HEAD is a commit `prepare` makes (no branch or ref)
-of the head tree with the group's files set back to the merge base (an added file left out, a deleted one restored,
-both paths of a rename). In it:
+tree and index hold the current HEAD of the user's checkout of the map's branch, every file, rebuilt by each `prepare`:
+the branch moves during a review (applied edits get committed, fixes land), so every group is read on the current
+code, not on the map's Head. Its detached HEAD is a commit `prepare` makes (no branch or ref) of that tree with the
+group's files set back to the map's merge base (an added file left out, a deleted one restored, both paths of a
+rename); its parent is the checkout HEAD it was built on. In it:
 
 - **staged changes** = what the branch changed in this group (the merge request diff); every other file reads as at
-  Head, so code the group calls or is called from is there to read and cite;
+  that HEAD, so code the group calls or is called from is there to read and cite;
 - **review edits** = anything that differs from that starting state (`<worktree>.tree`), staged or not, plus new
   files. The user's checkouts are not touched until `apply`;
 - **xplain notes** (step 3) are never review edits: `status`, `prepare` and `cleanup` do not count them as pending,
@@ -57,10 +59,10 @@ both paths of a rename). In it:
 |---|---|---|
 | `list <map>` | the groups | `<n>. <heading>`; total = line count; a reviewed group's heading ends with ` ✅ reviewed` |
 | `reviewed <map> <n>` | marks group `n` reviewed in the map (idempotent) | — |
-| `prepare <map> <n>` | resets the worktrees for group `n` | `repo<TAB>worktree` per repo of the group; exit 2 = review edits pending, nothing changed |
+| `prepare <map> <n>` | rebuilds the worktrees for group `n` on each checkout's current HEAD | `repo<TAB>worktree` per repo of the group; on stderr, per repo of the map whose checkout is on its branch: `<repo>: HEAD <sha> (map Head <sha>)`, `<repo>: uncommitted changes, not in the review`, `<repo>: merge base moved: regenerate the map` (the base branch was merged or rebased in), `<repo>: in no group: <path>` per file changed since the merge base that no group lists; exit 2 = review edits pending, or a checkout of the group is not on the map's branch, nothing changed |
 | `crn <map>` | `<crn>` (code-review-note) comments the review edits added | `<file>:<line>:<text>`; `<crn>` already in the branch's code is never listed |
 | `status <map>` | pending review edits | per worktree a `repo<TAB>worktree` line, then one line per edited file; header lines only = nothing pending |
-| `apply <map>` | review edits → each repo's checkout, then drops them from the worktrees | `<repo>: <file>` per applied file; exit 2 = a `<crn>` is left or a checkout is not on the map's branch, nothing applied; exit 3 = that repo's patch did not apply (see step 5) |
+| `apply <map>` | review edits → each repo's checkout, then drops them from the worktrees | `<repo>: <file>` per applied file; a checkout whose HEAD moved since `prepare` gets a 3-way merge only (`git apply --3way`: its applied files are staged in the user's index), with a `<repo>: … moved since prepare … 3-way merge` line on stderr; exit 2 = a `<crn>` is left or a checkout is not on the map's branch, nothing applied; exit 3 = that repo's patch did not apply (see step 5) |
 | `cleanup <map>` | removes the worktrees | exit 2 = review edits pending |
 
 ## 1 — Pick the feature and check the map
@@ -79,9 +81,10 @@ both paths of a rename). In it:
 - Stale map: per repo in the header's repo table (ICM: `sed '/^## Groups/,$d' F/_crm/STATE.md`), after
   `git -C <repo> fetch origin`, compare `git -C <repo> rev-parse origin/<branch>` with
   `git -C <repo> rev-parse <Head>` (full SHAs: the header holds short ones). Different → the branch moved since the
-  map was written: ask whether to regenerate the map first (recommended) or review the mapped head. Also compare
-  `git -C <repo> rev-parse HEAD`: if the user's checkout is not at Head, warn that review edits will be applied onto
-  different code.
+  map was written, which is expected during a review: `prepare` reviews each group on the checkout's current HEAD.
+  Recommend regenerating the map only when the groups no longer match the branch (many files in no group, groups
+  reshaped, or `prepare` says `merge base moved`); else go on. The user's checkout behind `origin/<branch>` → say so:
+  the review uses the checkout, so ask the user to pull first if the remote holds commits to review.
 - Leftovers: `crn.sh status <map>`. Edits from an earlier session → ask: apply them (step 5), discard them
   (`git -C <worktree> read-tree --reset -u "$(cat <worktree>.tree)" && git -C <worktree> clean -fd`), or keep
   reviewing with them.
@@ -105,8 +108,14 @@ Group = the number given (even if already reviewed), else the first group in `cr
 the next unreviewed one after the user's OK. Groups already marked: say which were skipped. All marked → say so and
 ask: review again from group 1, or finish (step 6).
 
-1. `crn.sh prepare <map> <n>`. Exit 2 → list the pending edits and ask: apply (step 5) or discard (the step 1
-   command).
+1. `crn.sh prepare <map> <n>`: it rebuilds on each checkout's current HEAD, so fixes committed since the map, earlier
+   groups' included, show; uncommitted ones do not. Exit 2 → pending edits: list them and ask: apply (step 5) or
+   discard (the step 1 command); a checkout not on the map's branch: tell the user, never switch branches for them.
+   Then tell the user, per repo, the HEAD reviewed and the map's Head when they differ, any `uncommitted changes, not
+   in the review` (commit them first to review them), and every `in no group` file: no group covers it, so offer to
+   read it with this group or to regenerate the map; never add it to the map yourself. `merge base moved` → the base
+   branch was merged or rebased into the feature, so the staged diff may hold base-branch lines: say so and
+   recommend regenerating the map (`local-context-code-review-mapping`) before reviewing on.
 2. Print the group exactly as in the map — the file in row `n` of § Groups (legacy: its `###` section): heading,
    `Read for:`, `Context:`, the `<repo>:` and `specs:` lists. Then `n / total`.
 3. **xplain notes**, so the code reads easier. In each worktree, in the group's changed code only, above each run of
@@ -131,9 +140,9 @@ ask: review again from group 1, or finish (step 6).
    the map writes it, from the project root, never the worktree's own; lines as in the review worktree, notes
    included (it is the file the user opens). Write it from the group's diff (`git -C <worktree> diff --cached`) and
    the code around it, never from the map alone. Name the code outside the group that the group depends on or is
-   called from (callers, block or callback providers, constants, the map's `Context:` line): it is at Head in the
-   worktree, so cite it the same way. Check it against the feature's business rules, if any, and the plan tasks it
-   implements. ICM: only the index rows, header included
+   called from (callers, block or callback providers, constants, the map's `Context:` line, whose lines may have
+   shifted since the map): it is in the worktree, so cite it the same way. Check it against the feature's business
+   rules, if any, and the plan tasks it implements. ICM: only the index rows, header included
    (`grep -iE '^\| (#|File) \||<group keywords>' F/_implementation_plan/STATE.md F/_business/STATE.md`), then only
    those task and theme files; legacy: those sections of `IMPLEMENTATION_PLAN.md`, `BUSINESS.md`. Flag each wrong
    pattern, rule broken or missed, or surprising behaviour with its `<repo>/path:line`. In an `Other / mechanical`
@@ -143,7 +152,7 @@ ask: review again from group 1, or finish (step 6).
    **Before printing it, prove every citation**: per `<repo>/path:line` (or `:from-to`),
    `sed -n '<from>,<to>p' "<worktree>/<path without the repo prefix>"` must show the code the sentence claims. A
    miss → find the right line in the worktree and fix the citation, never cite from memory, the map or another
-   checkout. A repo with no worktree in this group: check `git -C <repo> show <Head>:<path>` instead and say so.
+   checkout. A repo with no worktree in this group: check `git -C <repo> show HEAD:<path>` instead and say so.
 5. One IDE command for the whole group, every worktree `prepare` printed, in its order:
    `<launcher> [new-window flag] "<worktree 1>" "<worktree 2>" …`. Print it below the explanation in a `sh` block, so
    the user can copy it, then run it (terminal editor: print only). The previous group's window holds exactly these
@@ -156,9 +165,9 @@ ask: review again from group 1, or finish (step 6).
 ## 4 — During the review of a group
 
 - **Questions**: answer from the code and cite `<repo>/path:line`, each checked in the review worktree as in step 3
-  item 4: every file there is at Head (the user's checkout may be dirty or elsewhere). A repo with no review worktree
-  in this group: `git -C <repo> show <Head>:<path>`.
-- **Edits** go in the review worktree, never in the user's checkout; a file outside the group too, it is at Head. A
+  item 4: every file there is at the HEAD `prepare` built it on (the user's checkout may be dirty or have moved
+  since). A repo with no review worktree in this group: `git -C <repo> show HEAD:<path>`.
+- **Edits** go in the review worktree, never in the user's checkout; a file outside the group too, it is at that HEAD. A
   repo with no review worktree in this group → say so, and make the edit when that repo's group opens, or in the
   user's checkout only if the user says so. New files: create them in the worktree.
 - **`<crn>` comments** (crn = code-review-note, not the navigator). The user writes them in the review worktree, in
@@ -185,9 +194,17 @@ On the user's OK for the group:
 3. `crn.sh apply <map>`.
    - Exit 2 → `<crn>` left: list them and resolve (step 4) or ask the user to drop them; checkout not on the map's
      branch: tell the user, never switch branches for them.
+   - A checkout moved since `prepare` (the user committed or pulled meanwhile; stderr says `3-way merge`): its edits
+     were made on older code, so they are merged onto the new HEAD with `git apply --3way` only. Tell the user, and
+     that the applied files are now staged in their index (`--3way` stages them); never unstage or commit for them.
    - Exit 3 → repos printed before the failure are applied; the failed one keeps its review edits and the patch
-     (`<worktree>.patch`). If `--3way` left conflict markers in the checkout, report the files and stop: once the user
-     has resolved them, discard that worktree's edits (step 1 command), never apply again.
+     (`<worktree>.patch`). Nothing written (e.g. a dirty file refused) → tell the user why. Conflict markers left in
+     the checkout (`git -C <checkout> diff --name-only --diff-filter=U`) → resolve them with the user, never discard
+     silently: per conflict, show both sides with their `<repo>/path:line`, ask which resolution (`AskUserQuestion`,
+     or a plain question), write it in the checkout and remove the markers; `git add` only a file that `--3way` left
+     unmerged, so the index matches what it staged for the rest. Report per file what was chosen. Then discard that
+     worktree's edits (step 1 command), never apply that worktree again; then `crn.sh apply <map>` again for the
+     repos still pending (`status`); exit 0 → `crn.sh reviewed <map> <n>`.
    - Exit 0 → `crn.sh reviewed <map> <n>`.
 
    Every `crn.sh` call takes the map right after the command: `crn.sh reviewed <map> <n>`, never
