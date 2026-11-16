@@ -23,9 +23,10 @@ Flat set: `CURRENT.md`, `IMPLEMENTATION_PLAN.md`, `ARCHIVE.md`, `BUSINESS.md`, `
 
 - **Every folder the feature spans**, migrated in this run: `F`; its parent and sub-features; same-name feature
   folders in sibling repos and submodules of the project (`git submodule status`, `ls */.local_context/<feature>`,
-  the root one). Per folder: flat files and no `_` folder → convert; flat files beside `_` folders → § fold;
-  ICM → not migrated, its live files join § across; `.no_icm` → untouched. Repos = each folder's
-  `git rev-parse --show-toplevel`; they serve the commit check (rule 7) and the qualifier list (rule 9).
+  the root one). Per folder: `.icm` = `false`, or a 3.x `.no_icm` with no `_` folder → untouched; otherwise flat
+  files and no `_` folder → convert; flat files beside `_` folders → § fold; ICM → not migrated, its live files
+  join § across, `.icm` = `true` written when missing. Repos = each folder's `git rev-parse --show-toplevel`; they
+  serve the commit check (rule 7) and the qualifier list (rule 9).
 - **One worker per folder.** Folders may run in parallel, one `general-purpose` subagent each, given: the folder,
   this file's and `STEPS.md`'s paths, the repo list, the qualifier list, today's date. The orchestrator (the agent
   running this skill) alone runs § across, and only after every folder is installed.
@@ -71,7 +72,8 @@ Per installed folder:
    2/4/5/6 decision (each stripped task status verbatim with its Status, unknown statuses, placed sections,
    theme-less `BUSINESS.md`); the files whose pointers changed; for § fold, its verbatim blocks.
 3. **Delete the flat files** (the flat set only), now that install and both pointer passes succeeded:
-   `rm F/<flat files>`. Files outside the ICM set stay (rule 0).
+   `rm F/<flat files>`, then `printf 'true\n' > F/.icm && rm -f F/.no_icm`. Files outside the ICM set stay
+   (rule 0).
 
 ## Report
 

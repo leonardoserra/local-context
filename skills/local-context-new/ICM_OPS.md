@@ -58,33 +58,40 @@ theme is a new piece and row; no `_business/` yet: ICM_FORMATS.md § F: business
 
 ## layout check
 
-A skill's layout check found flat files (`CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`, `BUSINESS`, `CRM`,
-`CODE_REVIEW_MAPPING` `.md`) and no `.no_icm`, or `.no_icm` beside `_` folders. Collect every folder of the feature
-the run reads or writes (sub-features, parent, same-name folders in other repos) and ask **one** question with
-`AskUserQuestion` (a plain question without that tool) naming them all, recommended option first. It is the only
-question: the migration itself asks nothing.
+A skill found in `F` no `.icm` (or another value than `true` / `false`), `false` beside `_current/` (a 3.x install
+migrated it), or `true` beside flat files (tidy). For `F` and each other folder of the feature the run reads or
+writes (sub-features, parent, same-name folders in other repos) without `true` / `false`, one call, glob-free (zsh
+aborts on an unmatched glob): `ls -A <folder>`. Flat files: `CURRENT`, `IMPLEMENTATION_PLAN`, `ARCHIVE`,
+`BUSINESS`, `CRM`, `CODE_REVIEW_MAPPING` `.md`. No question for:
+
+- `.no_icm` (from 3.x) and no `_` folder → legacy: `printf 'false\n' > <folder>/.icm && rm <folder>/.no_icm`.
+- No flat file → ICM (made by 3.x): `printf 'true\n' > <folder>/.icm && rm -f <folder>/.no_icm` (a `.no_icm`
+  beside `_` folders has no flat file to keep).
+
+The rest have flat files: ask **one** question with `AskUserQuestion` (a plain question without that tool) naming
+them all, recommended option first. It is the only question: the migration itself asks nothing.
 
 - **Flat files only.** "`<folders>` use the old flat layout. The plugin now uses ICM (Interpretable Context
   Methodology): each multi-part file becomes a `_` folder with one file per piece and a STATE.md index, so the agent
   reads the index and opens only what it needs. Migrate?" When the project's `CLAUDE.md` / `CLAUDE.local.md` names a
   flat file (`grep -nE 'CURRENT\.md|BUSINESS\.md|ARCHIVE\.md|IMPLEMENTATION_PLAN\.md|CRM\.md' CLAUDE.md CLAUDE.local.md`),
   add: "`CLAUDE.md:<line>` names `<file>`: migrating conflicts with it until you update that line."
-- **Flat files beside `_` folders** (an interrupted conversion, or an install older than 3.0.0 wrote flat files):
-  list both sides; migrating folds the flat files in. Tell the user to update every agent install of the plugin.
+- **Flat files beside `_` folders** (an interrupted conversion, or an install older than 3.0.0 wrote flat files;
+  `local-context-tidy` also finds them when `.icm` is `true`): list both sides; migrating folds the flat files in.
+  Tell the user to update every agent install of the plugin.
 
 Options:
 - `Migrate (Recommended)` → run `local-context-icm-migrate` on `F`: read and follow
   `<this file's folder>/../local-context-icm-migrate/SKILL.md` (a subagent may run it). It migrates every
-  folder the feature spans and returns a report: tell the user, then continue on ICM (read ICM.md).
-- `Keep old layout` → `printf '\n' > <folder>/.no_icm` per flat-only folder, legacy. Say: delete `.no_icm` to be
+  folder the feature spans, writes `.icm` = `true` in each, and returns a report: tell the user, then continue on
+  ICM (read ICM.md). A folder the report marks aborted: legacy for this run, nothing written (a mixed one: stop).
+- `Keep old layout` → `printf 'false\n' > <folder>/.icm` per flat-only folder, legacy. Say: delete `.icm` to be
   asked again. A folder with flat files beside `_` folders cannot keep both: the run stops there, nothing written.
 - Dismissed or cancelled → legacy for this run only (a mixed folder: stop); write nothing.
 
-**`.no_icm` beside `_` folders, no flat file**: not a migration. ICM; ask `Delete .no_icm (Recommended)` / `Keep it`.
-
 ## legacy
 
-A `.no_icm` folder keeps the flat files of 2.0.0; ICM paths in the skills mean them: `_current/` = `CURRENT.md`
+A `.icm` = `false` folder keeps the flat files of 2.0.0; ICM paths in the skills mean them: `_current/` = `CURRENT.md`
 (decisions and open questions are its § Decisions, § Open questions); `_implementation_plan/` =
 `IMPLEMENTATION_PLAN.md` (`### N — <title>` tasks with Repo / Depends on / Anchors / Done when bullets, status as a
 heading suffix); `_business/` = `BUSINESS.md` (a section per theme, bullets `- <rule> — <date>; <ref>`); `_crm` =

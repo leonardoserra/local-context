@@ -25,15 +25,17 @@ command=${1:?command}
 map=${2:?map}
 map=${map%/}
 dir=$(dirname "$map")
+# layout: <feature>/.icm holds true (ICM) or false (legacy); without it, guessed from the map that exists
+icm=$(cat "$dir/.icm" 2>/dev/null || true)
 if [ ! -e "$map" ]; then
-  if [ -f "$dir/CODE_REVIEW_MAPPING.md" ]; then
+  if [ "$icm" != true ] && [ -f "$dir/CODE_REVIEW_MAPPING.md" ]; then
     echo "no map: $map, only the pre-2.0.0 $dir/CODE_REVIEW_MAPPING.md: regenerate it (local-context-code-review-mapping) or rename it to CRM.md" >&2
-  elif [ -d "$dir/_crm" ]; then
+  elif [ "$icm" != false ] && [ -d "$dir/_crm" ]; then
     echo "no map: $map; this folder uses the ICM layout: pass $dir/_crm" >&2
-  elif [ -f "$dir/CRM.md" ]; then
+  elif [ "$icm" != true ] && [ -f "$dir/CRM.md" ]; then
     echo "no map: $map; this folder uses the legacy layout: pass $dir/CRM.md" >&2
   else
-    echo "no map: $map (usage: crn.sh $command <map> ..., the map always comes first)" >&2
+    echo "no map: $map; run local-context-code-review-mapping first (usage: crn.sh $command <map> ..., the map always comes first)" >&2
   fi
   exit 1
 fi

@@ -331,7 +331,7 @@ name a migrated folder's flat files).
    - `X.md § <Section>` → that piece file;
    - `X.md:<line>` → `<piece file>:<new line>`, matched by content in `T`'s flat file (`grep -nF`). `T` converted
      in an earlier run (its flat file gone): the `:<line>` form is left; noted.
-3. **`T` is not ICM** (another feature still flat, or kept with `.no_icm`): untouched.
+3. **`T` is not ICM** (another feature still flat, or kept with `.icm` = `false`): untouched.
 4. **Each rewrite** is one exact `perl -CSD -Mutf8 -i.bak -pe` (or `sed`) per file, checked with
    `diff <file>.bak <file>`; then the `.bak` files are deleted.
 5. **Final check**, over all migrated folders:

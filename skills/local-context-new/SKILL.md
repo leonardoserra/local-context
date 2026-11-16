@@ -18,7 +18,7 @@ Agent working memory in the ICM layout (`<this skill folder>/ICM.md`), one kind 
 task (marked `✅ DONE <date> (<sha>)`), and blocked work sits under § Blocked on a decision with its question,
 never as a task with an invented default; `_business/` holds only business rules (scope, who gets/sees/edits
 what, data, timing), never who asked; `_crm/` is written only by `local-context-code-review-mapping`. Always ICM,
-never `.no_icm`. The project's `CLAUDE.md` / `CLAUDE.local.md` rules on `.local_context/` win: read them first.
+`.icm` = `true`. The project's `CLAUDE.md` / `CLAUDE.local.md` rules on `.local_context/` win: read them first.
 
 ## Folder layout
 
@@ -53,6 +53,7 @@ scope; a fact is written once and pointed at elsewhere (`<path>/_current/STATE.m
      Created by `local-context-new` from: "<the user's description, verbatim>".
    - `_business/` only if the description states business rules (not for a pure bug fix or upgrade): they go
      there, not in `_current/`.
+   - `.icm`: `printf 'true\n' > <the folder created>/.icm`.
 6. **Read back every file** in one call (`tail -n +1 $(find .local_context/<feature_name> -type f | sort)`),
    confirm each is complete, then report: folder path, whether `.gitignore` changed, whether `_business/` was
    created, and the first task. Never commit or push `.local_context/`.

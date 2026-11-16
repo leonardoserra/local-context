@@ -23,7 +23,7 @@ The sibling skills are the source of truth; this file only joins them. Read and 
    - the folder **exists** → never touch its files; say in one line it is being continued, and run `continue` in
      full from its layout check (it may be a flat pre-3.0.0 folder);
    - it **does not** → `new` steps 3–6, its report in one or two lines (folder, `.gitignore` changed, first task).
-3. **Run `continue`** on the new folder from § 2: skip § 1 and its layout check (`new` wrote ICM; read
+3. **Run `continue`** on the new folder from § 2: skip § 1 and its layout check (`new` wrote ICM and `.icm`; read
    `<this skill folder>/../local-context-new/ICM.md`), do not re-read the files just read back, skip the drift
    check but note `git rev-parse --short HEAD` as the session's `<start>`; § 3 onwards as written.
 
