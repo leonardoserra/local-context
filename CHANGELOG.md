@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 4.1.1 - 2026-11-20
+
+- Changed
+  - `local-context-save` is now described as usable at any point: as a checkpoint in the middle of a session, after
+    which you keep working, or before a `/clear`, a restart or a break. Before, the skill, README and plugin
+    description said to run it only before a clear or restart.
+  - Its closing line now reads "Saved. Keep working (run it again before a clear), or clear the session now and resume
+    with `local-context-continue <feature>`." Before, it only said the session could be cleared.
+  - A save with nothing new since the last one now reports "Nothing new since the last save." instead of "Saved."
+- Fix
+  - A second save in the same session, after a checkpoint that recorded no commits, no longer loses its commit range:
+    it starts from the newest archive entry of this session that names commits.
+
 ## 4.1.0 - 2026-11-20
 
 - Added
