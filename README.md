@@ -71,6 +71,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 |---|---|
 | `local-context-new <description>` | Creates `.local_context/<feature>/` in the ICM layout, filled in from your description |
 | `local-context-continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
+| `local-context-save [feature \| free text]` | Before a `/clear` or restart: saves what the session did, decided and left open, and the exact next step in § RESUME HERE, so `local-context-continue` resumes from the files. Edits no code, commits nothing |
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from the current state into the archive word for word (checked with `cmp`), makes the plan match git, and checks every `STATE.md` index against its folder |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `_business/` |
@@ -83,6 +84,7 @@ Examples (Claude Code):
 ```
 /local-context:local-context-new the new task is called axum migration, it moves the HTTP server from actix-web to axum
 /local-context:local-context-continue axum_migration. Mandatory skills: caveman for exploration, ponytail for code.
+/local-context:local-context-save axum_migration
 /local-context:local-context-tidy axum_migration
 /local-context:local-context-code-review-mapping axum_migration
 /local-context:local-context-crn axum_migration
@@ -236,7 +238,7 @@ npx skills update                                               # later, to upda
 
 Leave out `-g` to install into the current project only. Install all the skills together:
 the skills read `local-context-new/ICM*.md`, their layout checks run `local-context-icm-migrate`, and
-`local-context-start` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
+`local-context-start`, `local-context-save` and `local-context-crn` read their sibling skills' files. Each skill has an `agents/openai.yaml` that keeps Codex
 from invoking it on its own.
 
 ## Layout
@@ -246,8 +248,8 @@ from invoking it on its own.
   plugin.json          # plugin manifest
   marketplace.json     # makes this repo its own marketplace
 skills/
-  local-context-<name>/SKILL.md            # new, continue, start, tidy, business-questions, code-review-mapping,
-                                           # code-review-navigator, crn (alias), icm-migrate
+  local-context-<name>/SKILL.md            # new, continue, save, start, tidy, business-questions,
+                                           # code-review-mapping, code-review-navigator, crn (alias), icm-migrate
   local-context-new/ICM.md                 # the .local_context/<feature>/ contract: layers, paths, rules
   local-context-new/ICM_OPS.md             # operations, the layout check and the legacy layout, by section
   local-context-new/ICM_FORMATS.md         # every file and row format, read by section

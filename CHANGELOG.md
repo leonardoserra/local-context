@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 4.1.0 - 2026-11-20
+
+- Added
+  - New skill `local-context-save [feature | free text]`: run it before a `/clear`, a restart or a break. It writes
+    what the session did, decided and left open into the feature folder (task statuses, decisions, questions, new
+    tasks, YAGNI items, business rules, half-done edits), rewrites § START HERE and § RESUME HERE as the exact next
+    step with `file:line` anchors, archives the replaced text, then says the session can be cleared and prints the
+    `local-context-continue <feature>` command to resume. It edits no code and commits nothing.
+- Changed
+  - `local-context-continue` now applies the session rules listed in § RESUME HERE (skills, levels, extra rules)
+    without asking again; the user can still override them.
+  - The archive gets one entry per save or session end. A later save, or continue's own entry at session end, covers
+    only the commits after the last entry written in the same session, so ranges no longer overlap.
+
 ## 4.0.2 - 2026-11-16
 
 - Changed
