@@ -1,18 +1,20 @@
 ---
 name: local-context-save
-description: Save the current session into its .local_context/<feature_name>/ folder before a /clear, a restart or a break — tasks done or in progress, decisions, questions, new tasks, business rules, uncommitted work — and rewrite § RESUME HERE as the exact next step, so local-context-continue resumes cheaply. Writes no code, commits nothing. Run by the user as local-context-save [feature_name | free text].
+description: Save the current session into its .local_context/<feature_name>/ folder at any point (a checkpoint mid-session, or before a /clear, a restart or a break) — tasks done or in progress, decisions, questions, new tasks, business rules, uncommitted work — and rewrite § RESUME HERE as the exact next step, so local-context-continue resumes cheaply. Writes no code, commits nothing. Run by the user as local-context-save [feature_name | free text].
 argument-hint: "[feature_name] or free text naming the feature"
 disable-model-invocation: true
 ---
 
 # local-context-save
 
-Writes what this session implemented, decided, learned or left open into the feature folder `F`, so the session
-can be cleared and `local-context-continue <feature_name>` picks up from the files alone. Typical calls:
+Writes what this session implemented, decided, learned or left open into the feature folder `F`, so
+`local-context-continue <feature_name>` can resume from the files alone, whether the session goes on or is cleared.
+Typical calls:
 
 ```
 local-context-save
 local-context-save <feature_name>
+local-context-save checkpoint, I keep working
 local-context-save I need to restart, save the context so I can continue after
 ```
 
@@ -39,8 +41,8 @@ only its own repo's facts, pointing at the others (continue § 6, Pointers, not 
 Read the indexes in one call (ICM.md; legacy: § legacy's Read); skip whatever this session already read and did not
 change. Then only the pieces the session changed. Per repo touched, one call:
 `git branch --show-current; git status --short; git log --oneline <start>..HEAD`. `<start>` = the end of the newest
-archive row written this session; else the HEAD continue noted; else the end of the last archive row's Commits; else
-`git log --oneline -10`. Plus `git diff --stat` for uncommitted work.
+archive row written this session that names commits; else the HEAD continue noted; else the end of the last archive
+row's Commits; else `git log --oneline -10`. Plus `git diff --stat` for uncommitted work.
 
 From the conversation and that output, list:
 
@@ -51,7 +53,8 @@ From the conversation and that output, list:
 - session rules agreed in continue § 3 (skills, levels, extra rules), if any;
 - half-done edits: file, what is done, what remains; the command that was about to run.
 
-Nothing new since the last save → say so and skip to step 4.
+Nothing new since the last save → skip to step 4, and the report says "Nothing new since the last save." in place
+of "Saved."
 
 ## 3 — Write
 
@@ -80,5 +83,6 @@ Nothing new since the last save → say so and skip to step 4.
 ## 4 — Report
 
 A few lines: the files changed per folder, the § RESUME HERE text as written, then:
-"Saved. You can clear the session now; resume with `local-context-continue <feature_name>`." — the folder's real
-name in place of `<feature_name>`, so the command can be pasted as is.
+"Saved. Keep working (run it again before a clear), or clear the session now and resume with
+`local-context-continue <feature_name>`." — the folder's real name in place of `<feature_name>`, so the command
+can be pasted as is.

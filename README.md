@@ -71,7 +71,7 @@ Every skill name starts with `local-context-`, so it stays unique in agents that
 |---|---|
 | `local-context-new <description>` | Creates `.local_context/<feature>/` in the ICM layout, filled in from your description |
 | `local-context-continue [feature \| free text]` | Resumes a feature: reads its state, checks it against `git log`, agrees session rules, then works the plan task by task, keeping the files up to date |
-| `local-context-save [feature \| free text]` | Before a `/clear` or restart: saves what the session did, decided and left open, and the exact next step in § RESUME HERE, so `local-context-continue` resumes from the files. Edits no code, commits nothing |
+| `local-context-save [feature \| free text]` | At any point, as a mid-session checkpoint or before a `/clear` or restart: saves what the session did, decided and left open, and the exact next step in § RESUME HERE, so `local-context-continue` resumes from the files. Run it again before a `/clear` if you kept working. Edits no code, commits nothing |
 | `local-context-start <description>` | `local-context-new` followed by `local-context-continue`, in one step |
 | `local-context-tidy [feature]` | Audits and cleans a feature folder: moves history from the current state into the archive word for word (checked with `cmp`), makes the plan match git, and checks every `STATE.md` index against its folder |
 | `local-context-business-questions [feature \| free text]` | Checks where a feature really stands (docs vs git, code and ticket), builds with you the list of decisions only the business can take (skipping anything the code or project docs already answer), posts it bilingual on the ticket, and records the answers in `_business/` |
