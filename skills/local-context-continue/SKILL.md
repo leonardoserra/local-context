@@ -56,8 +56,8 @@ Everything read is re-sent on every later turn: read down the layers and stop wh
 
 ## 3 — Agree the session setup (one `AskUserQuestion` call)
 
-What the arguments already state (skills, levels like `/caveman full`, extra rules) is decided: apply it, do not
-ask again.
+What the arguments already state (skills, levels like `/caveman full`, extra rules), and the session rules listed in
+§ RESUME HERE, is decided: apply it, do not ask again; the user can still override it.
 
 **Skills.** In the available-skills list, look for `caveman` and `ponytail` (often prefixed, e.g.
 `caveman:caveman`). For each one installed and not yet decided, ask whether to use it this session (recommend yes);
@@ -122,7 +122,8 @@ replaces goes verbatim into the session's archive entry.
   `business rule set`, never the current state. A pure technical session leaves it untouched.
 - **Pointers, not copies**: a fact owned by the parent or another repo's folder is written there once and cited by
   file or `path:line`; fix the pointers whose lines moved, in the same session.
-- **Archive**: one entry per session, `archive add`. Never commit or push `.local_context/`.
+- **Archive**: one entry per save or session end, `archive add`; a later save, or continue's own entry, covers only
+  what came after the last entry written this session. Never commit or push `.local_context/`.
 
 Do this after each task and before handing off (end of session, `/compact`, `/clear`), so the next session starts
 from files that match `git log`.

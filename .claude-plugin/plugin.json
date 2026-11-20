@@ -1,7 +1,7 @@
 {
   "name": "local-context",
-  "version": "4.0.2",
-  "description": "Per-feature working memory in .local_context/<feature>/, ICM layout — _current/, _implementation_plan/, _archive/, optional _business/ and _crm/, each a STATE.md index plus one file per piece. `local-context-new` creates it, `local-context-continue` resumes it, `local-context-start` does both, `local-context-tidy` cleans it, `local-context-business-questions` lists the decisions the business owes, `local-context-code-review-mapping` maps the changed files for review, `local-context-code-review-navigator` (alias `local-context-crn`) walks the map group by group in your IDE, `local-context-icm-migrate` migrates a flat pre-3.0.0 folder to ICM.",
+  "version": "4.1.0",
+  "description": "Per-feature working memory in .local_context/<feature>/, ICM layout — _current/, _implementation_plan/, _archive/, optional _business/ and _crm/, each a STATE.md index plus one file per piece. `local-context-new` creates it, `local-context-continue` resumes it, `local-context-start` does both, `local-context-save` saves the session into it before a clear, `local-context-tidy` cleans it, `local-context-business-questions` lists the decisions the business owes, `local-context-code-review-mapping` maps the changed files for review, `local-context-code-review-navigator` (alias `local-context-crn`) walks the map group by group in your IDE, `local-context-icm-migrate` migrates a flat pre-3.0.0 folder to ICM.",
   "author": {
     "name": "Leonardo Serra"
   },
