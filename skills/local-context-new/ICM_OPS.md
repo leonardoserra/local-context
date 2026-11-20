@@ -39,7 +39,7 @@ The task's row: its Status cell only. The task file is not touched.
 ## archive add
 
 A piece in `F/_archive/<YYYY_MM_DD>/`, file `<N>.md`, N = the files there + 1. Commits = `<start>..<end>`
-(`<start>` = the end of the newest entry written this session, else the short HEAD noted when the session began; `<repo>@<start>..<end>` per repo when several moved),
+(`<start>` = the end of the newest entry written this session that names commits, else the short HEAD noted when the session began; `<repo>@<start>..<end>` per repo when several moved),
 `—` with no commit or no git.
 ```sh
 D=F/_archive; d=<YYYY_MM_DD>; mkdir -p $D/$d; n=$(( $(ls $D/$d | wc -l) + 1 )); cp <entry> $D/$d/$n.md
